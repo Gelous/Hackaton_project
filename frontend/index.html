@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Trip Planner Agent</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="panel">
+      <div class="header-row">
+        <h1>🧭 Trip Planner Agent</h1>
+        <button id="notif-bell" class="bell-btn" title="Notifications" type="button">
+          🔔<span id="notif-badge" class="badge" hidden>0</span>
+        </button>
+      </div>
+      <p class="tagline">Tell it your preferences. It researches, decides, and plans the trip end to end.</p>
+
+      <div id="notif-panel" class="notif-panel" hidden>
+        <h2>Agent notifications</h2>
+        <p class="hint">Surfaced automatically by the background scheduler — no need to ask.</p>
+        <div id="notif-list"></div>
+      </div>
+
+      <form id="trip-form">
+        <label>Starting city
+          <input type="text" name="origin_city" placeholder="Austin, Texas" required />
+        </label>
+
+        <label>Destination <span class="hint">(leave blank for a recommendation)</span>
+          <input type="text" name="destination" placeholder="e.g. somewhere in Colorado, or leave blank" />
+        </label>
+
+        <div class="row">
+          <label>Start date
+            <input type="date" name="start_date" required />
+          </label>
+          <label>End date
+            <input type="date" name="end_date" required />
+          </label>
+        </div>
+
+        <div class="row">
+          <label>Travelers
+            <input type="number" name="travelers" min="1" value="2" required />
+          </label>
+          <label>Budget (USD, total)
+            <input type="number" name="budget_usd" min="1" value="1500" required />
+          </label>
+        </div>
+
+        <label>Interests &amp; preferences
+          <input type="text" name="interests" placeholder="hiking, museums, live music, food..." />
+        </label>
+
+        <div class="row">
+          <label>Transportation
+            <select name="transportation">
+              <option value="flight">Flight</option>
+              <option value="drive">Drive</option>
+              <option value="either">Either / no preference</option>
+            </select>
+          </label>
+          <label>Accommodation
+            <select name="accommodation">
+              <option value="budget hostel">Budget / hostel</option>
+              <option value="mid-range hotel" selected>Mid-range hotel</option>
+              <option value="boutique">Boutique</option>
+              <option value="luxury">Luxury</option>
+            </select>
+          </label>
+        </div>
+
+        <label>Dietary / other needs
+          <input type="text" name="dietary_needs" placeholder="vegetarian, gluten-free, none..." />
+        </label>
+
+        <button type="submit" id="plan-btn">Plan my trip</button>
+      </form>
+
+      <div id="status" class="status" hidden></div>
+
+      <div id="updates" class="updates" hidden>
+        <h2>⚡ Manual check result</h2>
+        <div id="updates-list"></div>
+      </div>
+
+      <button id="check-updates-btn" hidden>Check this plan now (manual)</button>
+    </aside>
+
+    <main class="content">
+      <div id="map"></div>
+      <div id="summary" class="summary" hidden></div>
+      <div id="booking-links" class="booking-row" hidden></div>
+
+      <div id="save-trip-row" class="save-trip-row" hidden>
+        <input type="email" id="save-trip-email" placeholder="you@email.com (optional, for email alerts)" />
+        <button id="save-trip-btn" type="button">💾 Save &amp; monitor this trip</button>
+        <span id="save-trip-status" class="save-trip-status"></span>
+      </div>
+
+      <div id="itinerary" class="itinerary"></div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
