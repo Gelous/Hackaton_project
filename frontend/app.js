@@ -18,6 +18,17 @@ const notifList = document.getElementById("notif-list");
 
 const NOTIFICATION_POLL_MS = 30000;
 
+function escapeHtml(unsafe) {
+  if (unsafe == null) return "";
+  return String(unsafe)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+
 const CATEGORY_COLOR = {
   origin: "#92a0c0",
   destination: "#4fa3ff",
@@ -144,8 +155,8 @@ function renderNotifications(notifications) {
     div.className = "notif-item";
     const when = new Date(n.created_at).toLocaleString();
     div.innerHTML = `
-      <div class="meta">${n.origin_city} → ${n.destination_city} · ${when}</div>
-      <div>${n.message}</div>
+      <div class="meta">${escapeHtml(n.origin_city)} → ${escapeHtml(n.destination_city)} · ${escapeHtml(when)}</div>
+      <div>${escapeHtml(n.message)}</div>
       <div class="notif-item-actions"></div>
     `;
     const actions = div.querySelector(".notif-item-actions");
@@ -183,7 +194,7 @@ function renderUpdates(data) {
   for (const u of data.updates) {
     const div = document.createElement("div");
     div.className = "update-card";
-    div.innerHTML = `<div>${u.message}</div>`;
+    div.innerHTML = `<div>${escapeHtml(u.message)}</div>`;
     if (u.booking_link) {
       const link = document.createElement("a");
       link.href = u.booking_link;
@@ -219,7 +230,7 @@ function renderMap(plan) {
       fillOpacity: 0.85,
       weight: 2,
     }).addTo(map);
-    marker.bindPopup(`<b>${pin.label}</b><br/>${pin.category}`);
+    marker.bindPopup(`<b>${escapeHtml(pin.label)}</b><br/>${escapeHtml(pin.category)}`);
     markers.push(marker);
     bounds.push([pin.lat, pin.lon]);
   }
@@ -247,7 +258,7 @@ function renderSummary(plan) {
   summaryEl.innerHTML = `
     <div class="stat">
       <div class="label">Destination</div>
-      <div class="value">${plan.destination_city}, ${plan.destination_country}</div>
+      <div class="value">${escapeHtml(plan.destination_city)}, ${escapeHtml(plan.destination_country)}</div>
     </div>
     <div class="stat">
       <div class="label">Distance</div>
@@ -265,8 +276,8 @@ function renderSummary(plan) {
 
   bookingLinksEl.hidden = false;
   bookingLinksEl.innerHTML = `
-    <a href="${plan.flight.booking_link}" target="_blank" rel="noopener" class="link-btn primary">✈️ View live flights & book</a>
-    <a href="${plan.hotel.booking_link}" target="_blank" rel="noopener" class="link-btn primary">🏨 View live hotels & book</a>
+    <a href="${escapeHtml(plan.flight.booking_link)}" target="_blank" rel="noopener" class="link-btn primary">✈️ View live flights & book</a>
+    <a href="${escapeHtml(plan.hotel.booking_link)}" target="_blank" rel="noopener" class="link-btn primary">🏨 View live hotels & book</a>
   `;
 }
 
@@ -282,18 +293,18 @@ function renderItinerary(plan) {
     const card = document.createElement("div");
     card.className = "day-card";
     card.innerHTML = `
-      <h3>Day ${day.day_number} · ${day.date}</h3>
-      <div class="weather">${day.weather_summary}</div>
+      <h3>Day ${day.day_number} · ${escapeHtml(day.date)}</h3>
+      <div class="weather">${escapeHtml(day.weather_summary)}</div>
       <ul>${day.activities.map((a) => placeRecHtml(a)).join("")}</ul>
       <div class="restaurant">🍽️ ${placeRecHtml(day.restaurant, true)}</div>
-      ${day.notes ? `<div class="notes">${day.notes}</div>` : ""}
+      ${day.notes ? `<div class="notes">${escapeHtml(day.notes)}</div>` : ""}
     `;
     itineraryEl.appendChild(card);
   }
 }
 
 function placeRecHtml(place, inline = false) {
-  const link = `<a href="${place.maps_link}" target="_blank" rel="noopener" class="place-link" title="View on Google Maps">${place.name} ↗</a>`;
+  const link = `<a href="${escapeHtml(place.maps_link)}" target="_blank" rel="noopener" class="place-link" title="View on Google Maps">${escapeHtml(place.name)} ↗</a>`;
   return inline ? link : `<li>${link}</li>`;
 }
 
