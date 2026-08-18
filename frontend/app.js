@@ -1,7 +1,12 @@
 const form = document.getElementById("trip-form");
 const planBtn = document.getElementById("plan-btn");
 const statusEl = document.getElementById("status");
-const summaryEl = document.getElementById("summary");
+const resultsTitleEl = document.getElementById("results-title");
+const logisticsSectionEl = document.getElementById("logistics-section");
+const logisticsStatsEl = document.getElementById("logistics-stats");
+const costSectionEl = document.getElementById("cost-section");
+const costStatsEl = document.getElementById("cost-stats");
+const dailyPlanSectionEl = document.getElementById("daily-plan-section");
 const bookingLinksEl = document.getElementById("booking-links");
 const itineraryEl = document.getElementById("itinerary");
 const updatesEl = document.getElementById("updates");
@@ -133,11 +138,11 @@ function escapeHtml(unsafe) {
 }
 
 const CATEGORY_COLOR = {
-  origin: "#8a7a56",
-  destination: "#e0562a",
-  hotel: "#3f7d5c",
-  activity: "#c8922e",
-  restaurant: "#b3382a",
+  origin: "#6b6f85",
+  destination: "#4338ca",
+  hotel: "#0f766e",
+  activity: "#b45309",
+  restaurant: "#b3261e",
 };
 
 let map;
@@ -444,7 +449,7 @@ async function saveTrip() {
     saveTripStatus.textContent = `Couldn't save: ${e.message}`;
   } finally {
     saveTripBtn.disabled = false;
-    saveTripBtn.textContent = "💾 Save & monitor this trip";
+    saveTripBtn.textContent = "Save & monitor this trip";
   }
 }
 
@@ -458,14 +463,16 @@ async function fetchNotifications() {
   }
 }
 
+// Category is conveyed by the colored left border (see .notif-item--* in
+// style.css) rather than an icon — text-first, no decorative glyphs.
 const NOTIF_TYPE_META = {
-  weather_change: { icon: "🌧️", cls: "notif-item--weather" },
-  flight_price_reminder: { icon: "✈️", cls: "notif-item--price" },
-  hotel_price_reminder: { icon: "🏨", cls: "notif-item--price" },
-  wishlist_outlook: { icon: "🌟", cls: "notif-item--price" },
-  wishlist_expired: { icon: "⏳", cls: "notif-item--expired" },
-  trip_feedback_request: { icon: "⭐", cls: "notif-item--feedback" },
-  local_watch_new_events: { icon: "🔔", cls: "notif-item--local-watch" },
+  weather_change: { cls: "notif-item--weather" },
+  flight_price_reminder: { cls: "notif-item--price" },
+  hotel_price_reminder: { cls: "notif-item--price" },
+  wishlist_outlook: { cls: "notif-item--price" },
+  wishlist_expired: { cls: "notif-item--expired" },
+  trip_feedback_request: { cls: "notif-item--feedback" },
+  local_watch_new_events: { cls: "notif-item--local-watch" },
 };
 
 function renderNotifications(notifications) {
@@ -483,12 +490,11 @@ function renderNotifications(notifications) {
 
   for (const n of notifications) {
     const div = document.createElement("div");
-    const typeMeta = NOTIF_TYPE_META[n.type] || { icon: "🔔", cls: "" };
+    const typeMeta = NOTIF_TYPE_META[n.type] || { cls: "" };
     div.className = `notif-item ${typeMeta.cls}`;
     const when = new Date(n.created_at).toLocaleString();
 
     if (n.type === "trip_feedback_request") {
-      div.innerHTML = `<span class="notif-icon">${typeMeta.icon}</span>`;
       div.appendChild(renderFeedbackRequest(n, when));
       notifList.appendChild(div);
       continue;
@@ -496,7 +502,6 @@ function renderNotifications(notifications) {
 
     const metaLabel = n.origin_city ? `${n.origin_city} → ${n.destination_city}` : n.destination_city;
     div.innerHTML = `
-      <span class="notif-icon">${typeMeta.icon}</span>
       <div class="meta">${escapeHtml(metaLabel)} · ${escapeHtml(when)}</div>
       <div>${escapeHtml(n.message)}</div>
       <div class="notif-item-actions"></div>
@@ -618,7 +623,7 @@ function renderMap(plan) {
   const bounds = [];
 
   for (const pin of plan.map_pins) {
-    const color = CATEGORY_COLOR[pin.category] || "#24304a";
+    const color = CATEGORY_COLOR[pin.category] || "#14162b";
     const marker = L.circleMarker([pin.lat, pin.lon], {
       radius: pin.category === "destination" || pin.category === "origin" ? 9 : 7,
       color,
@@ -639,7 +644,7 @@ function renderMap(plan) {
         [origin.lat, origin.lon],
         [destination.lat, destination.lon],
       ],
-      { color: "#e0562a", weight: 2, dashArray: "6 8", opacity: 0.75 }
+      { color: "#4338ca", weight: 2, dashArray: "6 8", opacity: 0.75 }
     ).addTo(map);
   }
 
@@ -649,9 +654,11 @@ function renderMap(plan) {
 }
 
 function renderSummary(plan) {
-  summaryEl.hidden = false;
+  resultsTitleEl.textContent = "Trip Overview";
   const budgetClass = plan.within_budget ? "within-budget" : "over-budget";
-  summaryEl.innerHTML = `
+
+  logisticsSectionEl.hidden = false;
+  logisticsStatsEl.innerHTML = `
     <div class="stat">
       <div class="label">Destination</div>
       <div class="value">${escapeHtml(plan.destination_city)}, ${escapeHtml(plan.destination_country)}</div>
@@ -660,6 +667,10 @@ function renderSummary(plan) {
       <div class="label">Distance</div>
       <div class="value">${plan.distance_km.toLocaleString()} km</div>
     </div>
+  `;
+
+  costSectionEl.hidden = false;
+  costStatsEl.innerHTML = `
     <div class="stat ${budgetClass}">
       <div class="label">Estimated cost</div>
       <div class="value">${formatMoney(plan.total_estimated_cost_low, plan.currency)}–${formatMoney(plan.total_estimated_cost_high, plan.currency)} / ${formatMoney(plan.budget, plan.currency)}</div>
@@ -671,14 +682,15 @@ function renderSummary(plan) {
   `;
 
   bookingLinksEl.hidden = false;
-  const travelLinkLabel = plan.transportation === "drive" ? "🚗 View driving directions" : "✈️ View live flights & book";
+  const travelLinkLabel = plan.transportation === "drive" ? "View driving directions" : "View live flights & book";
   bookingLinksEl.innerHTML = `
     <a href="${escapeHtml(plan.flight.booking_link)}" target="_blank" rel="noopener" class="link-btn primary">${travelLinkLabel}</a>
-    <a href="${escapeHtml(plan.hotel.booking_link)}" target="_blank" rel="noopener" class="link-btn primary">🏨 View live hotels & book</a>
+    <a href="${escapeHtml(plan.hotel.booking_link)}" target="_blank" rel="noopener" class="link-btn primary">View live hotels & book</a>
   `;
 }
 
 function renderItinerary(plan) {
+  dailyPlanSectionEl.hidden = false;
   itineraryEl.innerHTML = "";
 
   const reasoning = document.createElement("div");
@@ -698,7 +710,7 @@ function renderItinerary(plan) {
         <h3>${escapeHtml(day.date)}</h3>
         <div class="weather">${escapeHtml(day.weather_summary)}</div>
         <ul>${day.activities.map((a) => placeRecHtml(a)).join("")}</ul>
-        <div class="restaurant">🍽️ ${placeRecHtml(day.restaurant, true)}</div>
+        <div class="restaurant">${placeRecHtml(day.restaurant, true)}</div>
         ${day.notes ? `<div class="notes">${escapeHtml(day.notes)}</div>` : ""}
       </div>
     `;
@@ -757,7 +769,7 @@ async function submitWishlist(e) {
     wishlistStatusEl.textContent = `Couldn't add to wishlist: ${err.message}`;
   } finally {
     wishlistBtn.disabled = false;
-    wishlistBtn.textContent = "✨ Add to wishlist";
+    wishlistBtn.textContent = "Add to wishlist";
   }
 }
 
@@ -797,7 +809,7 @@ function renderWishlistItems(items) {
     div.className = "wishlist-item";
     const statusNote = item.status === "expired" ? " (window passed)" : "";
     div.innerHTML = `
-      <span class="item-kind-badge" title="Wishlist — not booked yet">🌟</span>
+      <span class="item-kind-badge" title="Wishlist — not booked yet">Wishlist</span>
       <div class="dest">${escapeHtml(item.destination_city)}${item.destination_country ? ", " + escapeHtml(item.destination_country) : ""}${statusNote}</div>
       <div class="meta">From ${escapeHtml(item.origin_city)} · ${escapeHtml(item.earliest_date)} to ${escapeHtml(item.latest_date)} · ${item.trip_length_days} days · up to ${formatMoney(item.budget, item.currency)}</div>
       <div class="item-actions"></div>
@@ -853,7 +865,7 @@ async function submitWatch(e) {
     watchStatusEl.textContent = `Couldn't start watching: ${err.message}`;
   } finally {
     watchBtn.disabled = false;
-    watchBtn.textContent = "🔔 Start watching";
+    watchBtn.textContent = "Start watching";
   }
 }
 
@@ -888,7 +900,7 @@ function renderWatchItems(items) {
     const div = document.createElement("div");
     div.className = "local-watch-item";
     div.innerHTML = `
-      <span class="item-kind-badge" title="Watching for real local events">🔔</span>
+      <span class="item-kind-badge" title="Watching for real local events">Watching</span>
       <div class="dest">${escapeHtml(item.city)}${item.city_country ? ", " + escapeHtml(item.city_country) : ""}</div>
       <div class="meta">${escapeHtml(item.mood_or_interest || "general sightseeing")}</div>
       <div class="item-actions"></div>
@@ -928,7 +940,7 @@ function renderTripsList(trips) {
     div.className = "trip-item";
     const plan = trip.plan;
     div.innerHTML = `
-      <span class="item-kind-badge" title="Confirmed trip">🎫</span>
+      <span class="item-kind-badge" title="Confirmed trip">Trip</span>
       <div class="dest">${escapeHtml(plan.destination_city)}, ${escapeHtml(plan.destination_country)}</div>
       <div class="meta">From ${escapeHtml(plan.origin_city)} · ${escapeHtml(trip.start_date)} to ${escapeHtml(trip.end_date)} · ${formatMoney(plan.total_estimated_cost_low, plan.currency)}–${formatMoney(plan.total_estimated_cost_high, plan.currency)}</div>
       <div class="item-actions"></div>
@@ -971,6 +983,7 @@ async function submitPlan() {
   setStatus("Starting up...");
   hideError();
   emptyStateEl.hidden = true;
+  dailyPlanSectionEl.hidden = false;
   loadingSkeletonEl.hidden = false;
   itineraryEl.hidden = true;
   try {
@@ -986,7 +999,10 @@ async function submitPlan() {
   } catch (e) {
     showError(`Couldn't plan this trip: ${e.message}`);
     setStatus("");
-    if (!currentPlan) emptyStateEl.hidden = false;
+    if (!currentPlan) {
+      emptyStateEl.hidden = false;
+      dailyPlanSectionEl.hidden = true;
+    }
   } finally {
     loadingSkeletonEl.hidden = true;
     itineraryEl.hidden = false;
@@ -1016,15 +1032,17 @@ function readDayFormData() {
 // (a distinct color already in the palette rather than inventing a new one),
 // and treats the city center like a destination pin.
 const DAY_CATEGORY_COLOR = {
-  city_center: "#e0562a",
-  activity: "#c8922e",
-  restaurant: "#b3382a",
-  event: "#3f7d5c",
+  city_center: "#4338ca",
+  activity: "#b45309",
+  restaurant: "#b3261e",
+  event: "#0f766e",
 };
 
 function renderDaySummary(plan) {
-  summaryEl.hidden = false;
-  summaryEl.innerHTML = `
+  resultsTitleEl.textContent = "Day Overview";
+
+  logisticsSectionEl.hidden = false;
+  logisticsStatsEl.innerHTML = `
     <div class="stat">
       <div class="label">City</div>
       <div class="value">${escapeHtml(plan.city)}, ${escapeHtml(plan.country)}</div>
@@ -1044,13 +1062,17 @@ function renderDaySummary(plan) {
   `;
   bookingLinksEl.hidden = true;
   bookingLinksEl.innerHTML = "";
+  // A day plan has no cost concept (no flights/hotels) — the Cost section
+  // stays hidden entirely rather than showing an empty header.
+  costSectionEl.hidden = true;
+  costStatsEl.innerHTML = "";
 }
 
 function renderDayMap(plan) {
   clearMap();
   const bounds = [];
   for (const pin of plan.map_pins) {
-    const color = DAY_CATEGORY_COLOR[pin.category] || "#24304a";
+    const color = DAY_CATEGORY_COLOR[pin.category] || "#14162b";
     const marker = L.circleMarker([pin.lat, pin.lon], {
       radius: pin.category === "city_center" ? 9 : 7,
       color,
@@ -1131,7 +1153,7 @@ function eventCardEl(ev, cityLabel) {
     calBtn.href = buildIcsDataUrl(ev, cityLabel);
     calBtn.download = `${ev.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.ics`;
     calBtn.className = "link-btn";
-    calBtn.textContent = "📅 Add to calendar";
+    calBtn.textContent = "Add to calendar";
     actions.appendChild(calBtn);
   }
 
@@ -1139,6 +1161,7 @@ function eventCardEl(ev, cityLabel) {
 }
 
 function renderDayItinerary(plan) {
+  dailyPlanSectionEl.hidden = false;
   itineraryEl.innerHTML = "";
 
   const reasoning = document.createElement("div");
@@ -1158,14 +1181,14 @@ function renderDayItinerary(plan) {
       <h3>${escapeHtml(plan.city)}, ${escapeHtml(plan.date)}</h3>
       <div class="weather">${escapeHtml(plan.weather_summary)}</div>
       <ul>${plan.activities.map((a) => placeRecHtml(a)).join("")}</ul>
-      <div class="restaurant">🍽️ ${placeRecHtml(plan.restaurant, true)}</div>
+      <div class="restaurant">${placeRecHtml(plan.restaurant, true)}</div>
     </div>
   `;
   itineraryEl.appendChild(card);
 
   const eventsHeading = document.createElement("h2");
   eventsHeading.className = "section-heading";
-  eventsHeading.textContent = "🎟️ Local events today";
+  eventsHeading.textContent = "Local events today";
   itineraryEl.appendChild(eventsHeading);
 
   if (plan.events.length === 0) {
@@ -1251,6 +1274,7 @@ async function submitDayPlan() {
   setDayStatus("Starting up...");
   hideError();
   emptyStateEl.hidden = true;
+  dailyPlanSectionEl.hidden = false;
   loadingSkeletonEl.hidden = false;
   itineraryEl.hidden = true;
   checkUpdatesBtn.hidden = true;
@@ -1265,7 +1289,10 @@ async function submitDayPlan() {
   } catch (e) {
     showError(`Couldn't plan this day: ${e.message}`);
     setDayStatus("");
-    if (!currentPlan && !currentDayPlan) emptyStateEl.hidden = false;
+    if (!currentPlan && !currentDayPlan) {
+      emptyStateEl.hidden = false;
+      dailyPlanSectionEl.hidden = true;
+    }
   } finally {
     loadingSkeletonEl.hidden = true;
     itineraryEl.hidden = false;

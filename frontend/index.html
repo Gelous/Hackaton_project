@@ -4,38 +4,59 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Trip Planner Agent</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AB%3C/text%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%234338ca' d='M12 2C7.6 2 4 5.6 4 10c0 6 8 12 8 12s8-6 8-12c0-4.4-3.6-8-8-8zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="style.css?v=15" />
+  <link rel="stylesheet" href="style.css?v=16" />
 </head>
 <body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C7.6 2 4 5.6 4 10c0 6 8 12 8 12s8-6 8-12c0-4.4-3.6-8-8-8zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>
+      <h1>Trip Planner Agent</h1>
+    </div>
+    <button id="notif-bell" class="bell-btn" title="Notifications" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="notif-panel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span id="notif-badge" class="badge" hidden>0</span>
+    </button>
+  </header>
+
   <div class="app">
-    <aside class="panel">
-      <div class="header-row">
-        <h1>🎫 Trip Planner Agent</h1>
-        <button id="notif-bell" class="bell-btn" title="Notifications" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="notif-panel">
-          🔔<span id="notif-badge" class="badge" hidden>0</span>
+    <nav class="sidenav" aria-label="Primary">
+      <div class="nav-section-label">Planning</div>
+      <div class="nav-list" role="tablist">
+        <button type="button" class="tab-btn nav-item active" data-tab="trip-tab" role="tab" aria-selected="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+          Trip Planner
+        </button>
+        <button type="button" class="tab-btn nav-item" data-tab="day-tab" role="tab" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="16" rx="1.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>
+          Day Out
+        </button>
+        <button type="button" class="tab-btn nav-item" data-tab="wishlist-tab" role="tab" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.2 5.9-.8L12 3.5z"/></svg>
+          Wishlist
+        </button>
+        <button type="button" class="tab-btn nav-item" data-tab="trips-tab" role="tab" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1z"/></svg>
+          Saved Trips
         </button>
       </div>
-      <p class="tagline">Tell it your preferences. It researches, decides, and plans the trip end to end.</p>
+    </nav>
 
+    <aside class="panel">
       <div id="notif-panel" class="notif-panel" hidden>
         <h2>Agent notifications</h2>
         <p class="hint">Surfaced automatically by the background scheduler — no need to ask.</p>
         <div id="notif-list" aria-live="polite"></div>
       </div>
 
-      <div class="tab-row" role="tablist">
-        <button type="button" class="tab-btn active" data-tab="trip-tab" role="tab" aria-selected="true">Plan a Trip</button>
-        <button type="button" class="tab-btn" data-tab="day-tab" role="tab" aria-selected="false">📅 Day Out</button>
-        <button type="button" class="tab-btn" data-tab="wishlist-tab" role="tab" aria-selected="false">🌟 Wishlist</button>
-        <button type="button" class="tab-btn" data-tab="trips-tab" role="tab" aria-selected="false">🧳 My Trips</button>
-      </div>
-
       <div id="trip-tab" class="tab-panel">
+      <div class="panel-header"><h2>Trip Planner</h2></div>
+      <p class="tagline">Set preferences below. The agent researches real flights, hotels, weather, and activities, and plans the trip end to end.</p>
+
       <div class="preset-row">
         <span class="hint">Try an example:</span>
         <button type="button" class="preset-chip" data-preset="denver">Austin → Denver · hiking</button>
@@ -125,7 +146,7 @@
       <div id="status" class="status" hidden aria-live="polite"></div>
 
       <div id="updates" class="updates" hidden>
-        <h2>⚡ Manual check result</h2>
+        <h2>Manual check result</h2>
         <div id="updates-list"></div>
       </div>
 
@@ -133,6 +154,7 @@
       </div>
 
       <div id="day-tab" class="tab-panel" hidden>
+        <div class="panel-header"><h2>Day Out</h2></div>
         <p class="tagline">Not a whole trip — just want to make the most of one day here? Set a city, a date, and a mood, and get real activities, a restaurant, and any real local events happening that day.</p>
 
         <form id="day-form">
@@ -161,7 +183,7 @@
 
         <div id="day-status" class="status" hidden aria-live="polite"></div>
 
-        <h2 class="section-heading">🔔 Watch a city</h2>
+        <h2 class="section-heading">Watch a city</h2>
         <p class="tagline">Not ready to plan a specific day? Save a city and mood, and the agent checks daily on its own for real new events — surfaced in the notification inbox, no need to come back and ask. Needs a Ticketmaster API key configured server-side to actually find events (see README) — otherwise it'll just never have anything new to report.</p>
 
         <form id="watch-form">
@@ -181,7 +203,7 @@
             <input type="email" name="watch_email" placeholder="you@email.com" />
           </label>
 
-          <button type="submit" id="watch-btn">🔔 Start watching</button>
+          <button type="submit" id="watch-btn">Start watching</button>
         </form>
 
         <div id="watch-status" class="status" hidden aria-live="polite"></div>
@@ -194,6 +216,7 @@
       </div>
 
       <div id="wishlist-tab" class="tab-panel" hidden>
+        <div class="panel-header"><h2>Wishlist</h2></div>
         <p class="tagline">No fixed dates yet? Save loose intent — a flexible window and a budget ceiling — and the agent watches on its own for a good window, no need to check back.</p>
 
         <form id="wishlist-form">
@@ -255,7 +278,7 @@
             <input type="email" name="wl_email" placeholder="you@email.com" />
           </label>
 
-          <button type="submit" id="wishlist-btn">✨ Add to wishlist</button>
+          <button type="submit" id="wishlist-btn">Add to wishlist</button>
         </form>
 
         <div id="wishlist-status" class="status" hidden aria-live="polite"></div>
@@ -268,50 +291,67 @@
       </div>
 
       <div id="trips-tab" class="tab-panel" hidden>
+        <div class="panel-header"><h2>Saved Trips</h2></div>
         <p class="tagline">Trips you've locked in and saved for background monitoring.</p>
         <div id="trips-list"></div>
       </div>
     </aside>
 
     <main class="content">
-      <div id="map"></div>
+      <div class="results-card">
+        <div class="results-header"><h2 id="results-title">Trip Overview</h2></div>
 
-      <div id="empty-state" class="empty-state">
-        <div class="empty-state-icon">🗺️</div>
-        <h2>Your trip will show up here</h2>
-        <p>Fill in the form and hit <strong>Plan my trip</strong> — real flights, hotels, weather, and activities researched and turned into one day-by-day plan.</p>
-        <div class="empty-state-steps">
-          <div><span class="step-num">1</span> Set preferences &amp; budget</div>
-          <div><span class="step-num">2</span> Agent researches &amp; builds the plan</div>
-          <div><span class="step-num">3</span> Save it — the agent keeps watching for better deals in the background, even after you close this tab</div>
+        <div id="map"></div>
+
+        <div id="empty-state" class="empty-state">
+          <div class="empty-state-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3 3 5v16l6-2 6 2 6-2V3l-6 2-6-2z"/><path d="M9 3v16M15 5v16"/></svg>
+          </div>
+          <h2>Your trip will show up here</h2>
+          <p>Fill in the form and select <strong>Plan my trip</strong> — real flights, hotels, weather, and activities researched and turned into one day-by-day plan.</p>
+          <div class="empty-state-steps">
+            <div><span class="step-num">1</span> Set preferences &amp; budget</div>
+            <div><span class="step-num">2</span> Agent researches &amp; builds the plan</div>
+            <div><span class="step-num">3</span> Save it — the agent keeps watching for better deals in the background, even after you close this tab</div>
+          </div>
         </div>
+
+        <div id="error-banner" class="error-banner" hidden role="alert">
+          <span id="error-banner-text"></span>
+          <button id="error-banner-dismiss" type="button" aria-label="Dismiss">✕</button>
+        </div>
+
+        <section class="results-section" id="logistics-section" hidden>
+          <h3>Logistics</h3>
+          <div id="logistics-stats" class="stat-grid"></div>
+          <div id="booking-links" class="booking-row" hidden></div>
+        </section>
+
+        <section class="results-section" id="cost-section" hidden>
+          <h3>Cost</h3>
+          <div id="cost-stats" class="stat-grid"></div>
+        </section>
+
+        <div id="save-trip-row" class="save-trip-row" hidden>
+          <input type="email" id="save-trip-email" placeholder="you@email.com (optional, for email alerts)" />
+          <button id="save-trip-btn" type="button">Save &amp; monitor this trip</button>
+          <span id="save-trip-status" class="save-trip-status"></span>
+        </div>
+
+        <section class="results-section" id="daily-plan-section" hidden>
+          <h3>Daily Plan</h3>
+          <div id="loading-skeleton" class="itinerary" hidden>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+          </div>
+          <div id="itinerary" class="itinerary"></div>
+        </section>
       </div>
-
-      <div id="error-banner" class="error-banner" hidden role="alert">
-        <span id="error-banner-text"></span>
-        <button id="error-banner-dismiss" type="button" aria-label="Dismiss">✕</button>
-      </div>
-
-      <div id="summary" class="summary" hidden></div>
-      <div id="booking-links" class="booking-row" hidden></div>
-
-      <div id="save-trip-row" class="save-trip-row" hidden>
-        <input type="email" id="save-trip-email" placeholder="you@email.com (optional, for email alerts)" />
-        <button id="save-trip-btn" type="button">💾 Save &amp; monitor this trip</button>
-        <span id="save-trip-status" class="save-trip-status"></span>
-      </div>
-
-      <div id="loading-skeleton" class="itinerary" hidden>
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
-      </div>
-
-      <div id="itinerary" class="itinerary"></div>
     </main>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=15"></script>
+  <script src="app.js?v=16"></script>
 </body>
 </html>
