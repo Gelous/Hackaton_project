@@ -1,27 +1,30 @@
 """Phase 2: background re-optimization.
 
 Once a plan is locked in, this module re-checks the things that can change
-before departure (weather forecast, and our estimated flight/hotel price
-range) and reports back only what's worth a human decision — it never books
-anything or invents a specific new price. When something looks worth acting
-on, it always hands back the SAME real, live booking link from the original
-plan (Google Flights/Hotels), since that link always reflects whatever the
-real current price is at the moment the traveler opens it — we just decide
-when it's worth nudging them to go look.
+before departure and reports back only what's worth a human decision — it
+never books anything, and it never invents a number it can't back up.
+
+Two checks, both grounded in something real:
+- Weather: re-queries the live forecast; surfaces a nudge only if a day now
+  shows a high chance of rain.
+- Booking reminders: fires only on well-known travel-advice milestones
+  (21/14/7/3/1 days before departure — real dates, not simulated), pointing
+  back at the same real Google Flights/Hotels booking link so the traveler
+  can see whatever the actual current price is when they open it. This
+  deliberately does NOT claim a specific price changed — we have no live
+  pricing feed, so asserting a number would be a fabrication.
 
 In a deployed version this runs on a schedule (e.g. daily) per saved trip and
 notifies the user; here it's exposed as POST /api/monitor so the frontend can
 trigger a check on demand for the demo.
 """
 
-import hashlib
-import random
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from .tools.weather import get_weather_forecast
 
-DEAL_THRESHOLD_PCT = 6
 RAIN_THRESHOLD_PCT = 55
+BOOKING_REMINDER_MILESTONES_DAYS = (21, 14, 7, 3, 1)
 
 
 def check_for_updates(plan: dict) -> dict:
@@ -31,29 +34,13 @@ def check_for_updates(plan: dict) -> dict:
     if weather_update:
         updates.append(weather_update)
 
-    flight_update = _check_flight_deal(plan)
-    if flight_update:
-        updates.append(flight_update)
-
-    hotel_update = _check_hotel_deal(plan)
-    if hotel_update:
-        updates.append(hotel_update)
+    updates.extend(_check_booking_reminders(plan))
 
     return {
         "checked_at": datetime.now(timezone.utc).isoformat(),
         "has_updates": bool(updates),
         "updates": updates,
     }
-
-
-def _drift_factor(key: str) -> float:
-    """Deterministic-per-hour pseudo market drift for OUR ESTIMATE only — a
-    stand-in for how fares/rates typically move, used purely to decide when
-    it's worth nudging the traveler to go check the real, live booking link.
-    We never present this drifted number as an actual confirmed price."""
-    hour_bucket = datetime.now(timezone.utc).strftime("%Y%m%d%H")
-    seed = int(hashlib.sha256(f"{key}|{hour_bucket}".encode()).hexdigest(), 16)
-    return random.Random(seed).uniform(-0.14, 0.14)
 
 
 def _check_weather(plan: dict) -> dict | None:
@@ -81,37 +68,26 @@ def _check_weather(plan: dict) -> dict | None:
     }
 
 
-def _check_flight_deal(plan: dict) -> dict | None:
-    flight = plan["flight"]
-    key = f"flight|{plan['origin_city']}|{plan['destination_city']}|{plan['days'][0]['date']}"
-    drift = _drift_factor(key)
-    if drift > -DEAL_THRESHOLD_PCT / 100:
-        return None  # only surface genuine drops, not every fluctuation
+def _check_booking_reminders(plan: dict) -> list[dict]:
+    departure = date.fromisoformat(plan["days"][0]["date"])
+    days_until = (departure - datetime.now(timezone.utc).date()).days
+    if days_until not in BOOKING_REMINDER_MILESTONES_DAYS:
+        return []
 
-    new_low = round(flight["estimated_price_low_usd"] * (1 + drift), 2)
-    return {
-        "type": "flight_deal",
-        "message": f"Our fare estimate for {plan['origin_city']} → {plan['destination_city']} "
-        f"dropped from ~${flight['estimated_price_low_usd']:.0f} to ~${new_low:.0f}. "
-        "Worth checking real current prices now.",
-        "requires_decision": True,
-        "booking_link": flight["booking_link"],
-    }
-
-
-def _check_hotel_deal(plan: dict) -> dict | None:
-    hotel = plan["hotel"]
-    key = f"hotel|{plan['destination_city']}|{plan['days'][0]['date']}|{hotel['suggested_neighborhood']}"
-    drift = _drift_factor(key)
-    if drift > -DEAL_THRESHOLD_PCT / 100:
-        return None
-
-    new_low = round(hotel["estimated_price_low_usd"] * (1 + drift), 2)
-    return {
-        "type": "hotel_deal",
-        "message": f"Our nightly rate estimate for {hotel['suggested_neighborhood']} in "
-        f"{plan['destination_city']} dropped from ~${hotel['estimated_price_low_usd']:.0f} to "
-        f"~${new_low:.0f}. Worth checking real current rates now.",
-        "requires_decision": True,
-        "booking_link": hotel["booking_link"],
-    }
+    when = f"{days_until} day{'s' if days_until != 1 else ''}"
+    return [
+        {
+            "type": "flight_price_reminder",
+            "message": f"{when} until departure — worth checking current flight prices for "
+            f"{plan['origin_city']} → {plan['destination_city']} in case fares have shifted.",
+            "requires_decision": True,
+            "booking_link": plan["flight"]["booking_link"],
+        },
+        {
+            "type": "hotel_price_reminder",
+            "message": f"{when} until departure — worth checking current hotel rates near "
+            f"{plan['hotel']['suggested_neighborhood']} in {plan['destination_city']}.",
+            "requires_decision": True,
+            "booking_link": plan["hotel"]["booking_link"],
+        },
+    ]

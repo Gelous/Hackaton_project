@@ -3,7 +3,13 @@ import urllib.parse
 import httpx
 from strands import tool
 
-OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+# Multiple public mirrors, tried in order — the primary instance has proven
+# unreliable in practice (returned HTTP 406 during development), so this
+# fails over instead of giving up after one bad response.
+OVERPASS_MIRRORS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+]
 
 
 def _maps_search_link(query: str) -> str:
@@ -13,18 +19,22 @@ def _maps_search_link(query: str) -> str:
 
 
 def _try_overpass(query: str) -> list[dict]:
-    """Best-effort real POI lookup. The public Overpass instance is unreliable
-    (rate limits / occasional outright rejections), so this is treated as a
-    bonus enrichment, never the only source of truth — every result the agent
-    can act on also gets a real Google Maps link regardless of whether this
-    succeeds."""
-    try:
-        response = httpx.post(OVERPASS_URL, data={"data": query}, timeout=8)
-        if response.status_code != 200:
-            return []
-        return response.json().get("elements", [])
-    except Exception:
-        return []
+    """Best-effort real POI lookup, tried across multiple public mirrors. Even
+    with the fallback chain this can still come back empty, so it's treated
+    as a bonus enrichment, never the only source of truth — every result the
+    agent can act on also gets a real Google Maps link regardless of whether
+    this succeeds."""
+    for mirror in OVERPASS_MIRRORS:
+        try:
+            response = httpx.post(mirror, data={"data": query}, timeout=6)
+            if response.status_code != 200:
+                continue
+            elements = response.json().get("elements", [])
+            if elements:
+                return elements
+        except Exception:
+            continue
+    return []
 
 
 @tool

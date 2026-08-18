@@ -1,40 +1,73 @@
 :root {
-  --bg: #0f1420;
-  --panel: #161d2e;
-  --card: #1c2438;
-  --border: #2a3350;
-  --text: #e8ecf5;
-  --muted: #92a0c0;
-  --accent: #4fa3ff;
-  --accent-2: #35d49a;
-  --warn: #ffb454;
-  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* "Sunset Boarding Pass" palette — warm paper, ink navy, coral + gold */
+  --bg: #f8dcac;
+  --panel: #fceec9;
+  --card: #fffbf3;
+  --border: #d9b97a;
+  --text: #24304a;
+  --muted: #8a7a56;
+
+  --accent: #e0562a;
+  --accent-hover: #c8461e;
+  --on-accent: #fff8ec;
+  --accent-2: #c8922e;
+
+  --success: #3f7d5c;
+  --success-bg: #e4efe6;
+  --danger: #b3382a;
+  --danger-bg: #f7e2d9;
+
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: "Inter", -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", "Courier New", monospace;
+
+  font-family: var(--font-body);
 }
 
 * { box-sizing: border-box; }
 
+/* the hidden attribute must win over any display:flex/grid set for the
+   visible state, otherwise "hidden" elements with flex/grid still render */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
-  background: var(--bg);
   color: var(--text);
+  background-color: var(--bg);
+  /* soft directional light (top) + vignette (edges) for depth, plus a faint
+     flight-route map — airport dots joined by dashed great-circle arcs —
+     tying the background into the boarding-pass concept without competing
+     with it */
+  background-image:
+    radial-gradient(ellipse 130% 70% at 50% -12%, rgba(255, 253, 246, 0.75), transparent 60%),
+    radial-gradient(ellipse 140% 110% at 50% 115%, rgba(36, 48, 74, 0.13), transparent 62%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='460' height='460' viewBox='0 0 460 460'%3E%3Cg fill='none' stroke='%2324304a' stroke-width='1.1' stroke-linecap='round'%3E%3Cpath d='M55,70 Q160,10 300,95' stroke-dasharray='1 7'/%3E%3Cpath d='M300,95 Q380,190 410,340' stroke-dasharray='1 7'/%3E%3Cpath d='M55,70 Q95,230 190,400' stroke-dasharray='1 7'/%3E%3Cpath d='M190,400 Q310,360 410,340' stroke-dasharray='1 7'/%3E%3Cpath d='M55,70 Q250,180 410,340' stroke-dasharray='1 9'/%3E%3Cpath d='M300,95 Q220,260 190,400' stroke-dasharray='1 9'/%3E%3C/g%3E%3Cg fill='%2324304a'%3E%3Ccircle cx='55' cy='70' r='3'/%3E%3Ccircle cx='300' cy='95' r='2.6'/%3E%3Ccircle cx='410' cy='340' r='3'/%3E%3Ccircle cx='190' cy='400' r='2.6'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-size: 100% 100%, 100% 100%, 460px 460px;
+  background-attachment: fixed, fixed, fixed;
 }
 
 .app {
   display: grid;
   grid-template-columns: 360px 1fr;
   min-height: 100vh;
+  position: relative;
 }
 
 .panel {
-  background: var(--panel);
-  border-right: 1px solid var(--border);
+  background: linear-gradient(180deg, #fffaee 0%, var(--panel) 220px);
+  border-right: 2px dashed var(--border);
   padding: 24px;
   overflow-y: auto;
   max-height: 100vh;
+  box-shadow: 6px 0 24px rgba(36, 48, 74, 0.06);
 }
 
 .panel h1 {
-  font-size: 1.4rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.5rem;
+  letter-spacing: 0.01em;
   margin: 0;
 }
 
@@ -50,38 +83,44 @@ body {
   position: relative;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 6px 10px;
-  font-size: 1rem;
+  font-size: 1.05rem;
   flex-shrink: 0;
+  box-shadow: 0 1px 0 rgba(36, 48, 74, 0.06);
 }
 
 .badge {
   position: absolute;
   top: -6px;
   right: -6px;
-  background: #ff7a7a;
-  color: #1a0606;
+  background: var(--danger);
+  color: var(--on-accent);
   font-size: 0.65rem;
   font-weight: 700;
+  font-family: var(--font-mono);
   border-radius: 999px;
   min-width: 16px;
   height: 16px;
   line-height: 16px;
   text-align: center;
   padding: 0 3px;
+  border: 1px solid var(--panel);
 }
 
 .notif-panel {
   background: var(--card);
   border: 1px solid var(--accent);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 14px;
   margin-bottom: 18px;
+  box-shadow: 0 3px 10px rgba(36, 48, 74, 0.08);
 }
 
 .notif-panel h2 {
-  font-size: 0.9rem;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
   margin: 0 0 4px;
 }
 
@@ -90,25 +129,80 @@ body {
 }
 
 .notif-item {
+  position: relative;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px;
+  border-left: 3px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 10px 10px 36px;
   font-size: 0.82rem;
   line-height: 1.4;
   margin-bottom: 8px;
 }
 
+.notif-item--price { border-left-color: var(--accent-2); }
+.notif-item--weather { border-left-color: #5b7d8c; }
+.notif-item--feedback { border-left-color: var(--accent); }
+.notif-item--expired { border-left-color: var(--danger); }
+.notif-item--local-watch { border-left-color: var(--success); }
+
+.notif-icon {
+  position: absolute;
+  left: 9px;
+  top: 10px;
+  font-size: 0.95rem;
+}
+
 .notif-item .meta {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
   margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .notif-item-actions {
   display: flex;
   gap: 8px;
   margin-top: 8px;
+}
+
+.feedback-rating {
+  display: flex;
+  gap: 2px;
+  margin: 8px 0 4px;
+}
+
+.star-btn {
+  background: transparent;
+  border: none;
+  padding: 2px;
+  font-size: 1.15rem;
+  color: var(--border);
+}
+
+.star-btn.selected {
+  color: var(--accent-2);
+}
+
+.feedback-text {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  resize: vertical;
+  margin-bottom: 4px;
+}
+
+.feedback-hint {
+  color: var(--danger);
+  font-size: 0.75rem;
+  min-height: 1em;
 }
 
 .notif-empty {
@@ -119,39 +213,224 @@ body {
 .tagline {
   color: var(--muted);
   font-size: 0.85rem;
-  margin: 0 0 20px;
+  margin: 0 0 14px;
 }
 
-#trip-form {
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.preset-row .hint {
+  font-size: 0.78rem;
+}
+
+.preset-chip {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: border-color 0.15s, color 0.15s, transform 0.15s;
+}
+
+.preset-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.tab-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 18px;
+  border-bottom: 2px dashed var(--border);
+}
+
+.tab-btn {
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  padding: 8px 4px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.92rem;
+  margin-right: 14px;
+  margin-bottom: -2px;
+}
+
+.tab-btn.active {
+  color: var(--accent-hover);
+  border-bottom-color: var(--accent);
+}
+
+.section-heading {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  margin: 18px 0 10px;
+}
+
+.wishlist-result {
+  background: var(--card);
+  border: 1px solid var(--success);
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin-top: 12px;
+}
+
+.wishlist-result .reasoning {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-top: 6px;
+}
+
+/* Trips and wishlist items both read as travel documents, but their border
+   style carries the meaning: solid = confirmed/ticketed, dashed = provisional
+   intent that hasn't become a real booking yet. */
+.wishlist-item,
+.trip-item,
+.local-watch-item {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 12px 34px 12px 16px;
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 0 rgba(36, 48, 74, 0.05);
+  position: relative;
+}
+
+.trip-item {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+}
+
+.wishlist-item {
+  border: 1px dashed var(--accent-2);
+  border-left: 4px dashed var(--accent-2);
+}
+
+/* Same dashed-border green as event cards — visually ties the "watch a
+   city" list back to the same real-events data source. */
+.local-watch-item {
+  border: 1px dashed var(--success);
+  border-left: 4px dashed var(--success);
+}
+
+.item-kind-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 1rem;
+  opacity: 0.55;
+}
+
+.dest {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.02rem;
+}
+
+.meta {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  margin: 4px 0 8px;
+}
+
+.item-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.wishlist-empty,
+.trips-empty {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+#trip-form,
+#wishlist-form,
+#day-form,
+#watch-form {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
-#trip-form label {
+#trip-form label,
+#wishlist-form label,
+#day-form label,
+#watch-form label {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   color: var(--muted);
 }
 
-.hint { color: #5b6788; font-weight: normal; }
+.hint { color: #a3925f; font-weight: normal; text-transform: none; letter-spacing: normal; font-family: var(--font-body); font-size: 0.8rem; }
 
 #trip-form input,
-#trip-form select {
+#trip-form select,
+#wishlist-form input,
+#wishlist-form select,
+#day-form input,
+#day-form select,
+#watch-form input,
+#watch-form select {
   background: var(--card);
   border: 1px solid var(--border);
+  border-left-width: 3px;
   color: var(--text);
-  border-radius: 8px;
+  border-radius: 9px;
   padding: 9px 10px;
   font-size: 0.9rem;
+  font-family: var(--font-body);
 }
 
 #trip-form input:focus,
-#trip-form select:focus {
+#trip-form select:focus,
+#wishlist-form input:focus,
+#wishlist-form select:focus,
+#day-form input:focus,
+#day-form select:focus,
+#watch-form input:focus,
+#watch-form select:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(224, 86, 42, 0.15);
+}
+
+.budget-with-currency {
+  display: flex;
+  gap: 6px;
+}
+
+.budget-with-currency input {
+  flex: 1;
+  min-width: 0;
+}
+
+.budget-with-currency select {
+  flex-shrink: 0;
+  width: 92px;
+  padding-left: 8px;
+  padding-right: 4px;
 }
 
 .row {
@@ -160,27 +439,93 @@ body {
   gap: 10px;
 }
 
+/* Grid items default to min-width:auto (their content's min-content size),
+   so a wide select (e.g. "Mid-range hotel") or the budget+currency flex row
+   was forcing its column wider than the panel and silently overflowing
+   sideways — .panel's overflow-y:auto implicitly computes overflow-x to
+   auto too, so it was absorbed as an invisible horizontal scroll inside the
+   panel rather than an obvious page-level bug. This lets grid/flex children
+   actually shrink to fit. */
+.row > label,
+.budget-with-currency > input {
+  min-width: 0;
+}
+
+.autocomplete-wrap {
+  position: relative;
+}
+
+.autocomplete-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 10px 26px rgba(36, 48, 74, 0.18);
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.autocomplete-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.autocomplete-item .city-name {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.autocomplete-item .city-region {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.active {
+  background: var(--bg);
+}
+
+.autocomplete-empty {
+  padding: 10px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
 button {
   cursor: pointer;
   border: none;
-  border-radius: 8px;
-  padding: 11px 14px;
+  border-radius: 999px;
+  padding: 11px 16px;
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
+  font-family: var(--font-body);
+  transition: transform 0.12s, box-shadow 0.12s, background 0.12s;
 }
 
 #plan-btn {
   background: var(--accent);
-  color: #06101f;
+  color: var(--on-accent);
   margin-top: 6px;
+  box-shadow: 0 3px 0 var(--accent-hover);
 }
 
-#plan-btn:disabled { opacity: 0.6; cursor: wait; }
+#plan-btn:hover:not(:disabled) { transform: translateY(-1px); }
+#plan-btn:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 var(--accent-hover); }
+#plan-btn:disabled { opacity: 0.6; cursor: wait; box-shadow: none; }
 
 #check-updates-btn {
   background: var(--card);
   color: var(--text);
   border: 1px solid var(--border);
+  border-radius: 10px;
   width: 100%;
   margin-top: 14px;
 }
@@ -191,23 +536,25 @@ button {
   color: var(--muted);
 }
 
-.status.error { color: #ff7a7a; }
+.status.error { color: var(--danger); }
 
 .updates {
   margin-top: 18px;
-  border-top: 1px solid var(--border);
+  border-top: 2px dashed var(--border);
   padding-top: 14px;
 }
 
 .updates h2 {
-  font-size: 0.9rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
   margin: 0 0 10px;
 }
 
 .update-card {
   background: var(--card);
-  border: 1px solid var(--warn);
-  border-radius: 8px;
+  border: 1px solid var(--accent-2);
+  border-radius: 10px;
   padding: 10px;
   font-size: 0.82rem;
   margin-bottom: 8px;
@@ -220,8 +567,9 @@ button {
   margin-top: 8px;
   background: var(--card);
   border: 1px solid var(--accent);
-  color: var(--accent);
+  color: var(--accent-hover);
   padding: 5px 9px;
+  border-radius: 999px;
 }
 
 .content {
@@ -234,7 +582,59 @@ button {
 #map {
   height: 42vh;
   width: 100%;
-  background: #0a0e18;
+  background: #e7d9b3;
+  border-bottom: 2px dashed var(--border);
+}
+
+/* Leaflet's default controls, restyled to match the ticket system instead of
+   sitting on top of it as generic white boxes */
+.leaflet-bar {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 3px 10px rgba(36, 48, 74, 0.15);
+}
+
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  background: var(--card);
+  color: var(--accent-hover);
+  border-bottom: 1px dashed var(--border);
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.leaflet-bar a:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.leaflet-bar a:last-child {
+  border-bottom: none;
+}
+
+.leaflet-control-attribution {
+  background: rgba(255, 251, 243, 0.85);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  border-radius: 8px 0 0 0;
+  padding: 2px 8px;
+}
+
+.leaflet-control-attribution a {
+  color: var(--accent-hover);
+}
+
+.leaflet-popup-content-wrapper {
+  background: var(--card);
+  color: var(--text);
+  border-radius: 10px;
+  font-family: var(--font-body);
+}
+
+.leaflet-popup-tip {
+  background: var(--card);
 }
 
 .summary {
@@ -242,31 +642,34 @@ button {
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   padding: 18px 24px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px dashed var(--border);
 }
 
 .summary .stat {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 12px;
+  box-shadow: 0 2px 0 rgba(36, 48, 74, 0.05);
 }
 
 .summary .stat .label {
-  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
 .summary .stat .value {
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
   margin-top: 4px;
 }
 
-.summary .stat.over-budget .value { color: #ff7a7a; }
-.summary .stat.within-budget .value { color: var(--accent-2); }
+.summary .stat.over-budget .value { color: var(--danger); }
+.summary .stat.within-budget .value { color: var(--success); }
 
 .booking-row {
   display: flex;
@@ -278,25 +681,30 @@ button {
   display: inline-block;
   text-decoration: none;
   font-size: 0.85rem;
-  border-radius: 8px;
-  padding: 6px 10px;
+  border-radius: 999px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  color: var(--text);
+  background: var(--card);
 }
 
 .link-btn.primary {
   background: var(--accent);
-  color: #06101f;
-  font-weight: 600;
-  padding: 10px 16px;
+  color: var(--on-accent);
+  font-weight: 700;
+  padding: 11px 18px;
+  border: none;
+  box-shadow: 0 3px 0 var(--accent-hover);
 }
 
 .place-link {
   color: var(--text);
   text-decoration: none;
-  border-bottom: 1px dotted var(--muted);
+  border-bottom: 1px dotted var(--accent-2);
 }
 
 .place-link:hover {
-  color: var(--accent);
+  color: var(--accent-hover);
   border-bottom-color: var(--accent);
 }
 
@@ -312,7 +720,7 @@ button {
   background: var(--card);
   border: 1px solid var(--border);
   color: var(--text);
-  border-radius: 8px;
+  border-radius: 9px;
   padding: 8px 10px;
   font-size: 0.85rem;
   flex: 1;
@@ -321,48 +729,114 @@ button {
 
 #save-trip-btn {
   background: var(--accent-2);
-  color: #06101f;
+  color: var(--on-accent);
   white-space: nowrap;
+  box-shadow: 0 3px 0 #a97a24;
 }
 
 .save-trip-status {
   font-size: 0.8rem;
-  color: var(--accent-2);
+  color: var(--success);
+  font-weight: 600;
 }
 
 .itinerary {
   padding: 18px 24px 40px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .reasoning {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 14px 16px;
   font-size: 0.88rem;
   color: var(--muted);
   line-height: 1.5;
+  font-family: var(--font-display);
+  font-style: italic;
 }
 
+/* ---- Day cards, styled like an actual boarding pass ---- */
+
 .day-card {
+  display: flex;
+  align-items: stretch;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(36, 48, 74, 0.09);
+}
+
+.day-stub {
+  flex-shrink: 0;
+  width: 78px;
+  background: var(--accent);
+  color: var(--on-accent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 12px 6px;
+  position: relative;
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent 0,
+    transparent 9px,
+    rgba(255, 248, 236, 0.35) 9px,
+    rgba(255, 248, 236, 0.35) 10px
+  );
+}
+
+.day-stub::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -1px;
+  bottom: 0;
+  width: 0;
+  border-right: 3px dashed var(--bg);
+}
+
+.day-stub-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  opacity: 0.85;
+}
+
+.day-stub-num {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.day-body {
+  flex: 1;
+  min-width: 0;
   padding: 16px 18px;
 }
 
 .day-card h3 {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.02em;
   margin: 0 0 4px;
-  font-size: 1rem;
+  font-size: 0.92rem;
+  color: var(--muted);
+  text-transform: uppercase;
 }
 
 .day-card .weather {
-  font-size: 0.82rem;
-  color: var(--accent);
+  font-size: 0.85rem;
+  color: var(--accent-hover);
   margin-bottom: 10px;
+  font-weight: 500;
 }
 
 .day-card ul {
@@ -374,6 +848,7 @@ button {
 .day-card .restaurant {
   font-size: 0.85rem;
   color: var(--accent-2);
+  font-weight: 500;
 }
 
 .day-card .notes {
@@ -383,15 +858,187 @@ button {
   font-style: italic;
 }
 
-.placeholder {
-  padding: 60px 24px;
-  text-align: center;
+/* Event cards use a dashed border like wishlist items — a suggestion the
+   traveler still has to act on (buy a ticket), not a confirmed booking. */
+.event-card {
+  background: var(--card);
+  border: 1px dashed var(--success);
+  border-left: 4px dashed var(--success);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  animation: fade-in-up 0.35s ease-out;
+}
+
+.event-card .event-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.event-card .event-meta {
   color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  margin: 4px 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.event-card .event-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.events-empty {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-style: italic;
+  margin-bottom: 6px;
+}
+
+.day-feedback-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 0.85rem;
+  margin-top: 4px;
+  animation: fade-in-up 0.35s ease-out;
+}
+
+.day-feedback-card .day-feedback-heading {
+  font-family: var(--font-display);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.empty-state {
+  margin: 40px auto;
+  max-width: 440px;
+  text-align: center;
+  padding: 36px 30px 30px;
+  background: var(--card);
+  border: 2px dashed var(--border);
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(36, 48, 74, 0.09);
+}
+
+.empty-state-icon {
+  width: 74px;
+  height: 74px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.1rem;
+  background: var(--bg);
+  border: 2px dashed var(--accent-2);
+  border-radius: 50%;
+}
+
+.empty-state h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.3rem;
+  margin: 0 0 8px;
+}
+
+.empty-state p {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  margin: 0 0 26px;
+}
+
+.empty-state-steps {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.empty-state-steps > div {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 0.85rem;
+  color: var(--text);
+  padding: 9px 0;
+  position: relative;
+}
+
+.empty-state-steps > div:not(:last-child)::after {
+  /* dashed connector down to the next step, like a journey timeline */
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 30px;
+  bottom: -9px;
+  border-left: 2px dashed var(--border);
+}
+
+.step-num {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger);
+  color: #7a2a1c;
+  border-radius: 12px;
+  margin: 18px 24px 0;
+  padding: 12px 14px;
+  font-size: 0.85rem;
+}
+
+.error-banner button {
+  background: transparent;
+  color: var(--danger);
+  padding: 2px 6px;
+  font-size: 0.9rem;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+
+.skeleton-card {
+  height: 140px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, var(--card) 0%, var(--border) 50%, var(--card) 100%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.day-card, .reasoning {
+  animation: fade-in-up 0.35s ease-out;
 }
 
 @media (max-width: 860px) {
   .app { grid-template-columns: 1fr; }
-  .panel { max-height: none; border-right: none; border-bottom: 1px solid var(--border); }
+  .panel { max-height: none; border-right: none; border-bottom: 2px dashed var(--border); }
   .content { max-height: none; }
   .summary { grid-template-columns: repeat(2, 1fr); }
 }

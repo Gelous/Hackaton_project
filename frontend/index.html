@@ -4,15 +4,19 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Trip Planner Agent</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AB%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=15" />
 </head>
 <body>
   <div class="app">
     <aside class="panel">
       <div class="header-row">
-        <h1>🧭 Trip Planner Agent</h1>
-        <button id="notif-bell" class="bell-btn" title="Notifications" type="button">
+        <h1>🎫 Trip Planner Agent</h1>
+        <button id="notif-bell" class="bell-btn" title="Notifications" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="notif-panel">
           🔔<span id="notif-badge" class="badge" hidden>0</span>
         </button>
       </div>
@@ -21,16 +25,38 @@
       <div id="notif-panel" class="notif-panel" hidden>
         <h2>Agent notifications</h2>
         <p class="hint">Surfaced automatically by the background scheduler — no need to ask.</p>
-        <div id="notif-list"></div>
+        <div id="notif-list" aria-live="polite"></div>
+      </div>
+
+      <div class="tab-row" role="tablist">
+        <button type="button" class="tab-btn active" data-tab="trip-tab" role="tab" aria-selected="true">Plan a Trip</button>
+        <button type="button" class="tab-btn" data-tab="day-tab" role="tab" aria-selected="false">📅 Day Out</button>
+        <button type="button" class="tab-btn" data-tab="wishlist-tab" role="tab" aria-selected="false">🌟 Wishlist</button>
+        <button type="button" class="tab-btn" data-tab="trips-tab" role="tab" aria-selected="false">🧳 My Trips</button>
+      </div>
+
+      <div id="trip-tab" class="tab-panel">
+      <div class="preset-row">
+        <span class="hint">Try an example:</span>
+        <button type="button" class="preset-chip" data-preset="denver">Austin → Denver · hiking</button>
+        <button type="button" class="preset-chip" data-preset="asheville">Surprise me · Southeast, music</button>
       </div>
 
       <form id="trip-form">
         <label>Starting city
-          <input type="text" name="origin_city" placeholder="Austin, Texas" required />
+          <div class="autocomplete-wrap">
+            <input type="text" name="origin_city" id="origin-input" placeholder="Search any city worldwide" autocomplete="off" required
+              role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="origin-dropdown" />
+            <div class="autocomplete-dropdown" id="origin-dropdown" role="listbox" hidden></div>
+          </div>
         </label>
 
         <label>Destination <span class="hint">(leave blank for a recommendation)</span>
-          <input type="text" name="destination" placeholder="e.g. somewhere in Colorado, or leave blank" />
+          <div class="autocomplete-wrap">
+            <input type="text" name="destination" id="destination-input" placeholder="Search any city worldwide, or leave blank" autocomplete="off"
+              role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="destination-dropdown" />
+            <div class="autocomplete-dropdown" id="destination-dropdown" role="listbox" hidden></div>
+          </div>
         </label>
 
         <div class="row">
@@ -46,8 +72,24 @@
           <label>Travelers
             <input type="number" name="travelers" min="1" value="2" required />
           </label>
-          <label>Budget (USD, total)
-            <input type="number" name="budget_usd" min="1" value="1500" required />
+          <label>Budget (total)
+            <div class="budget-with-currency">
+              <input type="number" name="budget" min="1" value="1500" required />
+              <select name="currency">
+                <option value="USD" selected>USD $</option>
+                <option value="EUR">EUR €</option>
+                <option value="GBP">GBP £</option>
+                <option value="JPY">JPY ¥</option>
+                <option value="CAD">CAD C$</option>
+                <option value="AUD">AUD A$</option>
+                <option value="CHF">CHF Fr</option>
+                <option value="CNY">CNY ¥</option>
+                <option value="INR">INR ₹</option>
+                <option value="MXN">MXN $</option>
+                <option value="BRL">BRL R$</option>
+                <option value="SGD">SGD S$</option>
+              </select>
+            </div>
           </label>
         </div>
 
@@ -80,7 +122,7 @@
         <button type="submit" id="plan-btn">Plan my trip</button>
       </form>
 
-      <div id="status" class="status" hidden></div>
+      <div id="status" class="status" hidden aria-live="polite"></div>
 
       <div id="updates" class="updates" hidden>
         <h2>⚡ Manual check result</h2>
@@ -88,10 +130,168 @@
       </div>
 
       <button id="check-updates-btn" hidden>Check this plan now (manual)</button>
+      </div>
+
+      <div id="day-tab" class="tab-panel" hidden>
+        <p class="tagline">Not a whole trip — just want to make the most of one day here? Set a city, a date, and a mood, and get real activities, a restaurant, and any real local events happening that day.</p>
+
+        <form id="day-form">
+          <label>City
+            <div class="autocomplete-wrap">
+              <input type="text" name="day_city" id="day-city-input" placeholder="Search any city worldwide" autocomplete="off" required
+                role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="day-city-dropdown" />
+              <div class="autocomplete-dropdown" id="day-city-dropdown" role="listbox" hidden></div>
+            </div>
+          </label>
+
+          <label>Date
+            <input type="date" name="day_date" required />
+          </label>
+
+          <label>Mood / interest
+            <input type="text" name="day_mood" placeholder="chill evening, live music, adventurous, romantic..." />
+          </label>
+
+          <label>Dietary / other needs
+            <input type="text" name="day_dietary_needs" placeholder="vegetarian, gluten-free, none..." />
+          </label>
+
+          <button type="submit" id="day-plan-btn">Plan my day</button>
+        </form>
+
+        <div id="day-status" class="status" hidden aria-live="polite"></div>
+
+        <h2 class="section-heading">🔔 Watch a city</h2>
+        <p class="tagline">Not ready to plan a specific day? Save a city and mood, and the agent checks daily on its own for real new events — surfaced in the notification inbox, no need to come back and ask. Needs a Ticketmaster API key configured server-side to actually find events (see README) — otherwise it'll just never have anything new to report.</p>
+
+        <form id="watch-form">
+          <label>City
+            <div class="autocomplete-wrap">
+              <input type="text" name="watch_city" id="watch-city-input" placeholder="Search any city worldwide" autocomplete="off" required
+                role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="watch-city-dropdown" />
+              <div class="autocomplete-dropdown" id="watch-city-dropdown" role="listbox" hidden></div>
+            </div>
+          </label>
+
+          <label>Mood / interest
+            <input type="text" name="watch_mood" placeholder="live music, food, family friendly..." />
+          </label>
+
+          <label>Email <span class="hint">(optional, for alerts)</span>
+            <input type="email" name="watch_email" placeholder="you@email.com" />
+          </label>
+
+          <button type="submit" id="watch-btn">🔔 Start watching</button>
+        </form>
+
+        <div id="watch-status" class="status" hidden aria-live="polite"></div>
+        <div id="watch-result" class="wishlist-result" hidden></div>
+
+        <div id="watch-items-section">
+          <h2 class="section-heading">Your watches</h2>
+          <div id="watch-items"></div>
+        </div>
+      </div>
+
+      <div id="wishlist-tab" class="tab-panel" hidden>
+        <p class="tagline">No fixed dates yet? Save loose intent — a flexible window and a budget ceiling — and the agent watches on its own for a good window, no need to check back.</p>
+
+        <form id="wishlist-form">
+          <label>Starting city
+            <div class="autocomplete-wrap">
+              <input type="text" name="wl_origin_city" id="wl-origin-input" placeholder="Search any city worldwide" autocomplete="off" required
+                role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="wl-origin-dropdown" />
+              <div class="autocomplete-dropdown" id="wl-origin-dropdown" role="listbox" hidden></div>
+            </div>
+          </label>
+
+          <label>Destination <span class="hint">(leave blank — the agent will pick one)</span>
+            <div class="autocomplete-wrap">
+              <input type="text" name="wl_destination" id="wl-destination-input" placeholder="Search any city worldwide, or leave blank" autocomplete="off"
+                role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="wl-destination-dropdown" />
+              <div class="autocomplete-dropdown" id="wl-destination-dropdown" role="listbox" hidden></div>
+            </div>
+          </label>
+
+          <div class="row">
+            <label>Earliest date
+              <input type="date" name="wl_earliest_date" required />
+            </label>
+            <label>Latest date
+              <input type="date" name="wl_latest_date" required />
+            </label>
+          </div>
+
+          <div class="row">
+            <label>Trip length (days)
+              <input type="number" name="wl_trip_length_days" min="1" value="5" required />
+            </label>
+            <label>Budget ceiling
+              <div class="budget-with-currency">
+                <input type="number" name="wl_budget" min="1" value="1500" required />
+                <select name="wl_currency">
+                  <option value="USD" selected>USD $</option>
+                  <option value="EUR">EUR €</option>
+                  <option value="GBP">GBP £</option>
+                  <option value="JPY">JPY ¥</option>
+                  <option value="CAD">CAD C$</option>
+                  <option value="AUD">AUD A$</option>
+                  <option value="CHF">CHF Fr</option>
+                  <option value="CNY">CNY ¥</option>
+                  <option value="INR">INR ₹</option>
+                  <option value="MXN">MXN $</option>
+                  <option value="BRL">BRL R$</option>
+                  <option value="SGD">SGD S$</option>
+                </select>
+              </div>
+            </label>
+          </div>
+
+          <label>Interests
+            <input type="text" name="wl_interests" placeholder="beaches, hiking, food..." />
+          </label>
+
+          <label>Email <span class="hint">(optional, for alerts)</span>
+            <input type="email" name="wl_email" placeholder="you@email.com" />
+          </label>
+
+          <button type="submit" id="wishlist-btn">✨ Add to wishlist</button>
+        </form>
+
+        <div id="wishlist-status" class="status" hidden aria-live="polite"></div>
+        <div id="wishlist-result" class="wishlist-result" hidden></div>
+
+        <div id="wishlist-items-section">
+          <h2 class="section-heading">Your wishlist</h2>
+          <div id="wishlist-items"></div>
+        </div>
+      </div>
+
+      <div id="trips-tab" class="tab-panel" hidden>
+        <p class="tagline">Trips you've locked in and saved for background monitoring.</p>
+        <div id="trips-list"></div>
+      </div>
     </aside>
 
     <main class="content">
       <div id="map"></div>
+
+      <div id="empty-state" class="empty-state">
+        <div class="empty-state-icon">🗺️</div>
+        <h2>Your trip will show up here</h2>
+        <p>Fill in the form and hit <strong>Plan my trip</strong> — real flights, hotels, weather, and activities researched and turned into one day-by-day plan.</p>
+        <div class="empty-state-steps">
+          <div><span class="step-num">1</span> Set preferences &amp; budget</div>
+          <div><span class="step-num">2</span> Agent researches &amp; builds the plan</div>
+          <div><span class="step-num">3</span> Save it — the agent keeps watching for better deals in the background, even after you close this tab</div>
+        </div>
+      </div>
+
+      <div id="error-banner" class="error-banner" hidden role="alert">
+        <span id="error-banner-text"></span>
+        <button id="error-banner-dismiss" type="button" aria-label="Dismiss">✕</button>
+      </div>
+
       <div id="summary" class="summary" hidden></div>
       <div id="booking-links" class="booking-row" hidden></div>
 
@@ -101,11 +301,17 @@
         <span id="save-trip-status" class="save-trip-status"></span>
       </div>
 
+      <div id="loading-skeleton" class="itinerary" hidden>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
+
       <div id="itinerary" class="itinerary"></div>
     </main>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=15"></script>
 </body>
 </html>
