@@ -16,7 +16,7 @@ Planning a trip means juggling a dozen open browser tabs: flight prices, hotel o
 - Geocodes the origin/destination
 - Pulls a real weather forecast for the travel dates
 - Computes distance and travel time
-- Estimates a flight/hotel price range and generates a **real Google Flights / Google Hotels link**, pre-filled with the exact route and dates, so the traveler sees real current airlines, hotels, and prices and books directly there
+- Estimates a flight/hotel price range and generates a **real Google Flights / Booking.com link**, pre-filled with the exact route/destination and dates, so the traveler sees real current airlines, hotels, and prices and books directly there
 - Supports 12 currencies, converted with a real live exchange rate (not a guess) — see [How currency conversion works](#how-currency-conversion-works) below
 - Finds restaurants and activities matching dietary needs and interests — real named places when available, each with a **real Google Maps link**; otherwise a themed recommendation (e.g. "vegetarian dinner near downtown") plus a real Maps search link, never a made-up business name
 - Builds a day-by-day itinerary and flags whether the whole trip fits the budget
@@ -41,7 +41,9 @@ There's also a manual "Check this plan now" button for the trip currently on scr
 
 ### Why not just call a flight/hotel API?
 
-We looked. As of this build (August 2026), there is no free, instantly-self-serve API that returns real live flight/hotel prices: **Amadeus Self-Service shut down in July 2026**, Duffel's free test mode only returns a fake sandbox airline ("Duffel Airways") rather than real carriers, and Kiwi/Skyscanner/Booking.com/Expedia are invite-only or require an approved commercial partnership. Rather than fabricate a plausible-sounding airline or hotel name — which is worse than useless, since a traveler could act on it — the agent estimates a realistic price range for budget planning and hands back a real Google Flights/Hotels/Maps deep link (Google's own documented URL scheme, not scraping) so the traveler always sees genuine, current, bookable options.
+We looked. As of this build (August 2026), there is no free, instantly-self-serve API that returns real *live shopping* flight/hotel prices: **Amadeus Self-Service shut down in July 2026**, Duffel's free test mode only returns a fake sandbox airline ("Duffel Airways") rather than real carriers (and its real production access requires an approved commercial account), and Kiwi/Skyscanner/Booking.com/Expedia's *partner/affiliate APIs* are invite-only or require an approved commercial partnership. Hotels still work this way: the agent estimates a realistic price range (weighted by the same real seasonal-demand pattern used for flights) for budget planning and hands back a real Booking.com search deep-link — not their API, just the same public search URL any visitor would use — so the traveler sees genuine, current, bookable options for their exact dates. Google Hotels was tried first, but its `checkin`/`checkout` URL parameters turned out to be silently ignored (verified by hand — the link opened with an unrelated default date every time), so this uses Booking.com's real, documented search URL instead, which correctly applies both dates.
+
+Flights are a partial exception: [Travelpayouts' free Data API](https://www.travelpayouts.com/) returns real prices cached from actual traveler searches (not live-quoted, and not per-carrier) for a given route, which is a genuinely real number rather than a distance-based guess. `search_flights` uses it when a free `TRAVELPAYOUTS_API_TOKEN` is configured, resolving each city to an IATA code by matching its geocoded coordinates against a bundled Travelpayouts city dataset. If no token is set, no route match is found, or Travelpayouts has nothing cached for that route, it falls back to the same honest distance/season estimate as before — the flight estimate is never a guess presented as fact, and either way a real Google Flights deep link is included so the traveler can see today's actual bookable price.
 
 ### How currency conversion works
 
@@ -54,7 +56,7 @@ See [docs/architecture.md](docs/architecture.md) for the full data flow diagram.
 - **Agent:** [Strands Agents SDK](https://strandsagents.com/) (Python), running on Claude via **Amazon Bedrock**
 - **Backend:** FastAPI
 - **Frontend:** plain HTML/CSS/JS + [Leaflet](https://leafletjs.com/) (no build step, no Node.js required)
-- **Data:** Open-Meteo (geocoding + weather, free/no key), OpenStreetMap Overpass API (best-effort real POI data), real Google Flights/Hotels/Maps deep links for actual booking (see [docs/architecture.md](docs/architecture.md) for why we don't call a paid flight/hotel API), Ticketmaster Discovery API (optional, real local events for the Day Planner)
+- **Data:** Open-Meteo (geocoding + weather, free/no key), OpenStreetMap Overpass API (best-effort real POI data), real Google Flights/Booking.com/Google Maps deep links for actual booking (see [docs/architecture.md](docs/architecture.md) for why we don't call a paid flight/hotel API), Ticketmaster Discovery API (optional, real local events for the Day Planner), Travelpayouts Data API (optional, real cached flight prices for Plan My Trip)
 - **Background automation:** APScheduler (in-process scheduled job), SQLite (saved trips + notification inbox), Amazon SES (optional email alerts)
 
 ## Setup
@@ -68,6 +70,7 @@ See [docs/architecture.md](docs/architecture.md) for the full data flow diagram.
   - AWS credentials available locally, either via `aws configure` (writes `~/.aws/credentials`) or environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`)
   - (Optional) a verified sender identity in **Amazon SES** if you want email alerts from the background scheduler — without it, surfaced updates still land in the in-app notification inbox, just not by email
 - (Optional) a free [Ticketmaster Discovery API](https://developer.ticketmaster.com/) key (`TICKETMASTER_API_KEY` in `backend/.env`) if you want the **Day Planner** and **🔔 Watch a city** to show/surface real concert-event names — without it, both still work: Day Planner links out to a real Ticketmaster search instead of showing specific events, and a city watch just never has anything new to report
+- (Optional) a free [Travelpayouts](https://www.travelpayouts.com/) API token (`TRAVELPAYOUTS_API_TOKEN` in `backend/.env`, found under Profile → API token after signing up) if you want **Plan My Trip** to show a real cached flight price instead of a distance/season estimate — without it, flight cost estimation still works exactly as before
 
 ### Install & run
 
@@ -132,7 +135,7 @@ trip-planner-agent/
 
 ## Known limitations / roadmap
 
-- Flight/hotel/driving pricing shown inline is an **estimate range**, not a live booking feed — see [Why not just call a flight/hotel API?](#why-not-just-call-a-flighthotel-api). The real, current numbers are always one click away via the Google Flights/Hotels/driving-directions links.
+- Hotel/driving pricing shown inline is an **estimate range**, not a live booking feed. Flight pricing is a real recently-cached price when a `TRAVELPAYOUTS_API_TOKEN` is configured and Travelpayouts has data for that route, otherwise the same kind of estimate range — see [Why not just call a flight/hotel API?](#why-not-just-call-a-flighthotel-api). Either way, the real, current numbers are always one click away via the Google Flights/Booking.com/driving-directions links.
 - No live GPS tracking during the actual trip — intentionally out of scope for this build (see architecture doc); background monitoring covers the pre-departure window instead.
 - Single-city, single-leg trips only — no multi-city itineraries yet.
 - No sharing/export — a plan lives only in the browser that built it; no link to send a companion, no PDF.

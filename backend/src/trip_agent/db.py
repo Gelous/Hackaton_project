@@ -19,21 +19,45 @@ Three tables:
   or a local watch (exactly one of trip_id/wishlist_id/local_watch_id is
   set), read/unread.
 
-No user accounts — everything is keyed by an optional email for delivery, and
-scoped to a per-browser client_id (see frontend/app.js's ensureClientId()) so
-one visitor's saved trips/wishlist/notifications don't show up for another
-visitor. The client_id itself is a server-issued, HMAC-signed token (see
-auth.py) rather than a bare client-generated UUID, so a request can't just
-set the header to any value to read or mutate someone else's data — every
-mutating query below also filters by client_id, not just the reads. This is
-still not a verified identity (no login, no password), just enough to keep a
-demo or shared deployment from one visitor tampering with another's data.
+A real account is required to use any of this (see server.py's
+require_login/require_client_id) — planning, saving, or monitoring a trip is
+never available anonymously, so this data is always tied to an authenticated
+identity, not a self-issued browser token a visitor could clear or spoof.
+Everything is still keyed by the same client_id TEXT column as before
+accounts existed (kept for zero schema migration and to reuse every query
+below unchanged), but the value is now always `"account:{user_id}"` — a
+string server.py derives deterministically from the logged-in session, never
+supplied by the client directly. Email columns on these tables are also kept
+for delivery, separate from account login.
 
 Two more small tables: settings is a plain key/value store for server state
 that needs to survive a restart (the HMAC secret in auth.py, the scheduler's
 last-successful-sweep timestamp); day_plan_feedback stores ratings for the
 (unsaved, one-shot) Day Planner, since unlike a trip there's no other row for
 that feedback to attach to.
+
+users: real accounts (email + password) — required to reach any planning
+feature (see server.py's require_login), gating every other table above.
+Beyond login itself, an account remembers a "home" city/coordinates (set via
+real browser geolocation + reverse geocoding, see /api/reverse-geocode in
+server.py) so Trip Planner's starting city and Day Out's city can pre-fill
+automatically across visits/devices, and a small set of preferences
+(default_currency/default_transportation/default_accommodation/notify_email
+— see update_preferences) that prefill the matching form fields the same
+way — always still editable, never a lock-in. Passwords are hashed with
+PBKDF2-HMAC-SHA256 (a real, NIST-recommended KDF, stdlib-only — no bcrypt
+dependency needed) with a random per-user salt, never stored or logged in
+plain text. Sessions reuse auth.py's existing HMAC-signing pattern rather
+than a separate mechanism.
+
+Real settings (see update_settings): email_notifications_enabled overrides
+every per-item "email me" checkbox at once (_alert_email in server.py checks
+this before honoring any of them); in_app_notifications_enabled suppresses
+the notification inbox without deleting the underlying rows, so re-enabling
+it surfaces history rather than losing it; font_scale/theme are pure display
+preferences the frontend applies as CSS. delete_account_data + delete_user
+together are a real, permanent account deletion — every row this account
+owns across every table above, then the account itself.
 """
 
 import json
@@ -55,6 +79,16 @@ def get_connection():
         conn.commit()
     finally:
         conn.close()
+
+
+def _ensure_column(conn: sqlite3.Connection, table: str, column: str, decl: str) -> None:
+    """Adds a column to an existing table if it's missing — lets a schema
+    field added after initial release show up on an already-created dev DB
+    without a full migration tool, since CREATE TABLE IF NOT EXISTS is a
+    no-op once the table already exists."""
+    existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+    if column not in existing:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
 
 
 def init_db() -> None:
@@ -113,15 +147,19 @@ def init_db() -> None:
                 email TEXT,
                 city TEXT NOT NULL,
                 city_country TEXT,
+                country_code TEXT,
                 lat REAL NOT NULL,
                 lon REAL NOT NULL,
                 mood_or_interest TEXT,
+                event_type TEXT,
                 status TEXT NOT NULL DEFAULT 'active',
                 last_checked_at TEXT,
                 notified_event_urls TEXT NOT NULL DEFAULT '[]'
             )
             """
         )
+        _ensure_column(conn, "local_watches", "event_type", "TEXT")
+        _ensure_column(conn, "local_watches", "country_code", "TEXT")
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS notifications (
@@ -158,6 +196,33 @@ def init_db() -> None:
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                password_salt TEXT NOT NULL,
+                home_city TEXT,
+                home_country TEXT,
+                home_lat REAL,
+                home_lon REAL
+            )
+            """
+        )
+        _ensure_column(conn, "users", "default_currency", "TEXT")
+        _ensure_column(conn, "users", "default_transportation", "TEXT")
+        _ensure_column(conn, "users", "default_accommodation", "TEXT")
+        _ensure_column(conn, "users", "notify_email", "TEXT")
+        # Settings (see server.py's /api/auth/settings): 0/1 booleans since
+        # sqlite has no native bool type; 1 (on) is the default for both so
+        # an existing row that predates these columns behaves exactly like
+        # it did before they existed.
+        _ensure_column(conn, "users", "email_notifications_enabled", "INTEGER NOT NULL DEFAULT 1")
+        _ensure_column(conn, "users", "in_app_notifications_enabled", "INTEGER NOT NULL DEFAULT 1")
+        _ensure_column(conn, "users", "font_scale", "TEXT NOT NULL DEFAULT 'medium'")
+        _ensure_column(conn, "users", "theme", "TEXT NOT NULL DEFAULT 'light'")
 
 
 def get_setting(key: str) -> str | None:
@@ -412,8 +477,8 @@ def create_local_watch(item: dict) -> int:
         cur = conn.execute(
             """
             INSERT INTO local_watches (
-                created_at, client_id, email, city, city_country, lat, lon, mood_or_interest
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                created_at, client_id, email, city, city_country, country_code, lat, lon, mood_or_interest, event_type
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 datetime.now(timezone.utc).isoformat(),
@@ -421,9 +486,11 @@ def create_local_watch(item: dict) -> int:
                 item.get("email"),
                 item["city"],
                 item.get("city_country"),
+                item.get("country_code"),
                 item["lat"],
                 item["lon"],
                 item.get("mood_or_interest"),
+                item.get("event_type"),
             ),
         )
         return cur.lastrowid
@@ -567,3 +634,102 @@ def notified_within(days: int, type_: str, trip_id: int | None = None, wishlist_
             (value, type_, cutoff),
         ).fetchone()
         return row is not None
+
+
+def create_user(email: str, password_hash: str, password_salt: str) -> int | None:
+    """None means the email is already registered — the UNIQUE constraint is
+    the actual source of truth for that; server.py turns None into a clean
+    409 rather than a raw DB error leaking out."""
+    try:
+        with get_connection() as conn:
+            cur = conn.execute(
+                "INSERT INTO users (created_at, email, password_hash, password_salt) VALUES (?, ?, ?, ?)",
+                (datetime.now(timezone.utc).isoformat(), email, password_hash, password_salt),
+            )
+            return cur.lastrowid
+    except sqlite3.IntegrityError:
+        return None
+
+
+def get_user_by_email(email: str) -> dict | None:
+    with get_connection() as conn:
+        row = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+        return dict(row) if row else None
+
+
+def get_user_by_id(user_id: int) -> dict | None:
+    with get_connection() as conn:
+        row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        return dict(row) if row else None
+
+
+def update_home_location(user_id: int, city: str, country: str, lat: float, lon: float) -> None:
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE users SET home_city = ?, home_country = ?, home_lat = ?, home_lon = ? WHERE id = ?",
+            (city, country, lat, lon, user_id),
+        )
+
+
+def update_preferences(
+    user_id: int,
+    default_currency: str | None,
+    default_transportation: str | None,
+    default_accommodation: str | None,
+    notify_email: str | None,
+) -> None:
+    """Every field is nullable and independently optional — a traveler can
+    set just one preference and leave the rest unset, same as any other form
+    in this app. None clears a previously-set value rather than leaving the
+    old one behind, so unchecking/blanking a field in the UI actually takes."""
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE users SET default_currency = ?, default_transportation = ?, "
+            "default_accommodation = ?, notify_email = ? WHERE id = ?",
+            (default_currency, default_transportation, default_accommodation, notify_email, user_id),
+        )
+
+
+def update_settings(
+    user_id: int,
+    email_notifications_enabled: bool,
+    in_app_notifications_enabled: bool,
+    font_scale: str,
+    theme: str,
+) -> None:
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE users SET email_notifications_enabled = ?, in_app_notifications_enabled = ?, "
+            "font_scale = ?, theme = ? WHERE id = ?",
+            (int(email_notifications_enabled), int(in_app_notifications_enabled), font_scale, theme, user_id),
+        )
+
+
+def delete_account_data(client_id: str) -> None:
+    """Permanently removes every row this account owns — trips, wishlist
+    items, local watches, notifications on any of those, and day-plan
+    feedback. Called only from account deletion (see server.py's DELETE
+    /api/auth/account); the confirmation step lives entirely in the caller,
+    this function itself just does the deletion once asked."""
+    with get_connection() as conn:
+        conn.execute(
+            """
+            DELETE FROM notifications WHERE id IN (
+                SELECT n.id FROM notifications n
+                LEFT JOIN trips t ON t.id = n.trip_id
+                LEFT JOIN wishlist w ON w.id = n.wishlist_id
+                LEFT JOIN local_watches lw ON lw.id = n.local_watch_id
+                WHERE COALESCE(t.client_id, w.client_id, lw.client_id) = ?
+            )
+            """,
+            (client_id,),
+        )
+        conn.execute("DELETE FROM trips WHERE client_id = ?", (client_id,))
+        conn.execute("DELETE FROM wishlist WHERE client_id = ?", (client_id,))
+        conn.execute("DELETE FROM local_watches WHERE client_id = ?", (client_id,))
+        conn.execute("DELETE FROM day_plan_feedback WHERE client_id = ?", (client_id,))
+
+
+def delete_user(user_id: int) -> None:
+    with get_connection() as conn:
+        conn.execute("DELETE FROM users WHERE id = ?", (user_id,))

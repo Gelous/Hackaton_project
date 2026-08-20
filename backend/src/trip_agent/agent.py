@@ -28,8 +28,16 @@ CRITICAL RULE — never invent a specific business: you have no access to a live
 bookable flight/hotel/restaurant/activity database, so you must never state a \
 specific airline, hotel, restaurant, or attraction name as if it's a real, \
 currently-bookable option unless a tool actually returned that exact name to \
-you (e.g. in a `named_options` list). Flights and hotels are ranges, not named \
-picks — never invent an airline or hotel name for FlightEstimate/HotelEstimate. \
+you (e.g. in a `named_options` list, or named directly in search_flights' \
+`note`). HotelEstimate's *price* is always a range, never a confirmed rate for \
+a specific hotel — but search_hotels' `named_options` (real hotels/hostels from \
+OpenStreetMap, when found) IS real data you should copy through into \
+HotelEstimate.named_options verbatim; never invent a hotel name yourself, and \
+never imply the price range is that specific hotel's confirmed rate just \
+because it's named. Flights are usually a range too, EXCEPT when \
+search_flights' note names a real airline and flight number (a real cached \
+fare it found) — in that case you may repeat that exact airline/flight number \
+in FlightEstimate.note, but never invent one when the note doesn't name one. \
 For restaurants/activities: if a tool's `named_options` is non-empty, you may \
 use those real names. If it's empty, describe the recommendation generically by \
 theme/cuisine/interest (e.g. "Vegetarian dinner near downtown", "Morning hike \
@@ -44,14 +52,21 @@ best matches their interests, budget, and trip length, then geocode it.
 2. Estimate the distance between origin and destination.
 3. Get the weather forecast for the destination covering the full travel date range.
 4. Search hotels for the destination and dates, honoring the accommodation \
-preference and traveler count — it returns a price range plus a real \
-booking_link, use it exactly as returned. For the travel-cost field: if the \
+preference and traveler count, and passing the destination's exact latitude/ \
+longitude from geocode_city (enables the real named-hotel search) — it \
+returns a price range plus a real booking_link, use it exactly as returned, \
+and copy its `named_options` into HotelEstimate.named_options exactly as \
+returned (empty list if it found none — never invent one to fill it). For \
+the travel-cost field: if the \
 transportation preference is "drive", call estimate_driving_cost (pass the \
 distance you computed) instead of search_flights — driving cost doesn't \
 scale per traveler the way airfare does, and its booking_link is real \
 driving directions, not a flight search. Otherwise (flight, or no strong \
-preference), call search_flights as usual. Either way, set transportation to \
-whichever one you actually called ("drive" or "flight").
+preference), call search_flights, passing the exact origin/destination \
+latitude and longitude you got from geocode_city (it uses them to look up \
+real flight prices), and the traveler's exact preferred_departure_time if \
+they stated one — never pick a time preference yourself. Either way, set \
+transportation to whichever one you actually called ("drive" or "flight").
 5. Search restaurants near the destination coordinates, honoring dietary needs.
 6. Search activities near the destination coordinates, honoring stated interests.
 7. Build a day-by-day itinerary across the full date range. Assign each day's \
@@ -59,16 +74,36 @@ weather from the forecast, 2-4 activities, and one restaurant, each as a \
 PlaceRec with a real maps_link (see CRITICAL RULE above for how to name them). \
 Avoid repeating the same restaurant twice if enough named options were returned. \
 If weather is bad on a day (high precipitation chance), prefer indoor activities \
-that day and say so in notes.
-8. Set flight.note and hotel.note with one honest sentence each (e.g. likely \
-nonstop availability, why this neighborhood fits the trip) — never claim a \
-specific carrier or property was "chosen."
+that day and say so in notes. For each day, also call search_events with the \
+destination and that exact day's date, using the traveler's stated interests as \
+mood_or_interest, leaving event_type unset (any type), and passing the \
+destination's country_code, latitude, and longitude from geocode_city \
+(disambiguates a city name that exists in multiple countries, and lets the \
+tool fall back to a coordinate search if the city name doesn't match \
+Ticketmaster's own spelling for it) — include the real \
+events it returns (0-2 per day) in that day's `events` list, same honesty rule \
+as activities/restaurants: never invent one to fill the list, an empty list is a \
+fine, honest answer for a quiet day.
+8. Set flight.note and hotel.note with one honest sentence each. For flight.note, \
+check search_flights' `real_price_observed` field: if true, say plainly that this \
+is a real recent price (its `note` already tells you whether it matches the exact \
+dates or nearby cached ones, names a real airline/flight number if one was found, \
+and — if a preferred_departure_time was given — whether this specific fare's \
+departure time actually matches it or not — carry all of that over faithfully, \
+don't claim "exact dates" if it wasn't, only name a carrier if the tool's note \
+actually named one, and never claim a time-of-day match the tool didn't confirm); \
+if false, describe it as an estimate as usual. Never claim a price \
+is real when `real_price_observed` is false, and never claim a specific carrier or \
+property was "chosen."
 9. Compute total_estimated_cost_low / _high as flight range + (hotel range * \
 number of nights), and set within_budget by comparing the LOW estimate to the \
 traveler's budget.
 10. Build map_pins covering the destination, the suggested hotel neighborhood \
 (use destination coordinates if no more precise ones are available), and every \
-activity/restaurant that has real lat/lon from a tool.
+activity/restaurant/event that has real lat/lon from a tool. For each activity \
+and restaurant pin, set its `label` to that exact place's `name` field, character \
+for character — a downstream step matches them by that label to compute a real \
+travel-time estimate, so a mismatched label silently loses that for the traveler.
 11. Always set currency to "USD" — every number you produce is in US dollars, \
 regardless of what currency the traveler asked for. If they need a different \
 currency, that conversion happens outside your response using a real exchange \
@@ -102,6 +137,7 @@ def build_agent() -> Agent:
             search_hotels,
             search_restaurants,
             search_activities,
+            search_events,
         ],
         system_prompt=SYSTEM_PROMPT,
         structured_output_model=TripPlan,
@@ -171,14 +207,25 @@ concert, show, or event name, or claim one is happening on a date you didn't get
 search_events. An empty events list is a perfectly honest result.
 
 Workflow:
-1. Geocode the city.
-2. Get the weather forecast covering the given date.
-3. Search activities near the city center, honoring the stated mood/interest.
-4. Search restaurants near the city center, honoring any dietary needs mentioned.
-5. Search events for the city and date, biased by the mood/interest — include the real events \
-returned (0-5) in the `events` list, never padded with an invented one.
-6. Build map_pins covering the city center and every activity/restaurant/event that has real \
-lat/lon from a tool.
+1. Get a search anchor point. If the prompt already gives you exact coordinates (the traveler's \
+real device location, more precise than any city center), use those directly as latitude/ \
+longitude/country/country_code for every step below — do not call geocode_city in that case, \
+it would only throw away precision you already have. Otherwise, geocode the city to get its \
+center coordinates and use those. Set city_lat/city_lon in the output to this exact anchor \
+point either way — server.py uses it to compute real travel times from here to everything else.
+2. Get the weather forecast covering the given date, at the anchor point.
+3. Search activities near the anchor point, honoring the stated mood/interest.
+4. Search restaurants near the anchor point, honoring any dietary needs mentioned.
+5. Search events for the city and date. Always pass the traveler's exact event_type and \
+max_events through to search_events unchanged — these are explicit choices from a form, not \
+yours to reinterpret. Also pass the anchor point's country_code, latitude, and longitude from \
+step 1, so a city name that exists in multiple countries resolves to the right one, and so the \
+tool can fall back to a coordinate search if the city name doesn't match Ticketmaster's own \
+spelling for it. Use mood/interest only as the tool's soft bias, not a hard filter. Include the \
+real events returned (0 to max_events) in the `events` list, never padded with an invented one.
+6. Build map_pins covering the anchor point and every activity/restaurant/event that has real \
+lat/lon from a tool. This is a day out, not a trip — never include a hotel pin or any \
+accommodation suggestion; there is nowhere to stay overnight in this plan.
 7. Write a short reasoning_summary tying the day together around the stated mood/interest.
 
 Always call tools to get real data or real links rather than inventing weather, place names, \
@@ -216,10 +263,23 @@ def _format_day_feedback_history(history: list[dict] | None) -> str:
 
 
 def _build_day_prompt(p: dict) -> str:
+    location_line = f"- City: {p['city']}"
+    if p.get("lat") is not None and p.get("lon") is not None:
+        # Real device geolocation (see /api/reverse-geocode) — more precise
+        # than a city center, so the agent is told to use it directly rather
+        # than re-geocoding away that precision (see DAY_SYSTEM_PROMPT step 1).
+        location_line += (
+            f"\n- Exact anchor point (the traveler's real current location — use directly, do not "
+            f"call geocode_city): latitude={p['lat']}, longitude={p['lon']}, "
+            f"country={p.get('country') or 'unknown, infer from coordinates if needed'}, "
+            f"country_code={p.get('country_code') or 'unknown, infer from coordinates if needed'}"
+        )
     return f"""Plan a single day out with these details:
-- City: {p['city']}
+{location_line}
 - Date: {p['date']}
 - Mood/interest: {p.get('mood_or_interest', 'general sightseeing')}
+- Event type filter: {p.get('event_type') or 'Any (pass event_type="" to search_events)'}
+- Max number of events to include (pass to search_events exactly as-is): {p.get('max_events', 5)}
 - Dietary/other needs: {p.get('dietary_needs', 'none')}
 {_format_day_feedback_history(p.get('feedback_history'))}"""
 
@@ -325,6 +385,7 @@ def _build_prompt(p: dict) -> str:
 - Total budget (USD, for the whole trip, all travelers): {p['budget_usd']}
 - Interests/preferences: {p.get('interests', 'general sightseeing')}
 - Transportation preference: {p.get('transportation', 'flight')}
+- Preferred departure time: {p.get('preferred_departure_time') or 'no preference'}
 - Accommodation preference: {p.get('accommodation', 'mid-range hotel')}
 - Dietary/other needs: {p.get('dietary_needs', 'none')}
 {_format_feedback_history(p.get('feedback_history'))}"""

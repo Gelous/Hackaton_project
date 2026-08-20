@@ -36,7 +36,41 @@
   --radius: 6px;
   --radius-sm: 4px;
 
+  /* Text-size setting (see the Profile/Settings panel) — every rem-based
+     size in the app scales off this, so one number covers the whole UI
+     instead of hunting down each font-size individually. */
+  --font-scale: 1;
+
   font-family: var(--font-body);
+}
+
+/* Dark mode is an explicit in-app toggle (see Settings), not a
+   prefers-color-scheme media query — set once via data-theme on <html> and
+   persisted server-side like every other account preference. */
+html[data-theme="dark"] {
+  --bg: #0d0e1a;
+  --panel: #14162b;
+  --card: #1a1c36;
+  --border: #2a2c4a;
+  --border-strong: #3c3f66;
+  --text: #e8e9f3;
+  --muted: #9195b8;
+
+  --accent: #6366f1;
+  --accent-hover: #7c7ff2;
+  --on-accent: #ffffff;
+  --accent-2: #14b8a6;
+
+  --success: #34d399;
+  --success-bg: rgba(52, 211, 153, 0.14);
+  --danger: #f87171;
+  --danger-bg: rgba(248, 113, 113, 0.14);
+  --warning: #fbbf24;
+  --warning-bg: rgba(251, 191, 36, 0.14);
+}
+
+html {
+  font-size: calc(16px * var(--font-scale));
 }
 
 * { box-sizing: border-box; }
@@ -94,6 +128,73 @@ body {
   min-height: calc(100vh - 56px);
 }
 
+/* ---- Landing (logged-out gate) ---- */
+
+.landing {
+  min-height: calc(100vh - 56px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.landing-card {
+  max-width: 560px;
+  text-align: center;
+}
+
+.landing-icon {
+  width: 40px;
+  height: 40px;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.landing-card h2 {
+  font-size: 1.5rem;
+  margin: 0 0 12px;
+  letter-spacing: -0.01em;
+}
+
+.landing-lede {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0 0 24px;
+}
+
+.landing-features {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+}
+
+.landing-features li {
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.landing-features strong { color: var(--accent); }
+
+.landing-privacy {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin: 0 0 20px;
+}
+
+#landing-cta-btn {
+  padding: 11px 28px;
+  font-size: 0.92rem;
+}
+
 .sidenav {
   background: var(--sidebar-bg);
   padding: 16px 10px;
@@ -131,6 +232,12 @@ body {
   border-left: 2px solid transparent;
   margin-bottom: 1px;
   font-family: var(--font-body);
+}
+
+.nav-divider {
+  height: 1px;
+  background: var(--sidebar-border);
+  margin: 8px 4px 9px;
 }
 
 .nav-item:hover {
@@ -179,6 +286,12 @@ body {
   gap: 10px;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .bell-btn {
   position: relative;
   background: transparent;
@@ -225,6 +338,71 @@ body {
   padding: 14px;
   margin: 12px 0 18px;
   box-shadow: 0 4px 16px rgba(20, 22, 43, 0.08);
+}
+
+/* Fixed rather than nested in .panel's normal flow (see index.html's
+   comment on #account-panel) — needs to open from the landing page, where
+   the sidebar/.panel doesn't exist yet. */
+.account-dropdown {
+  position: fixed;
+  top: 64px;
+  right: 20px;
+  width: 320px;
+  max-width: calc(100vw - 40px);
+  max-height: calc(100vh - 84px);
+  overflow-y: auto;
+  z-index: 50;
+  margin: 0;
+}
+
+/* ---- Settings tab ---- */
+
+#settings-tab .section-heading:first-of-type {
+  margin-top: 8px;
+  padding-top: 0;
+  border-top: none;
+}
+
+#settings-tab .account-home-location {
+  margin-top: 8px;
+}
+
+.danger-heading {
+  color: var(--danger);
+}
+
+.danger-btn {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+.danger-btn:hover:not(:disabled) { background: var(--danger); color: #fff; }
+.danger-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+#delete-account-confirm {
+  margin-top: 10px;
+  padding: 12px;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-sm);
+}
+
+#delete-account-confirm-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 0.87rem;
+  margin: 6px 0 10px;
+}
+
+.danger-confirm-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .notif-panel h2 {
@@ -375,11 +553,9 @@ body {
   font-style: normal;
 }
 
-/* Trips, wishlist items, and watches all read as a list row — the left tag
-   text (TRIP / WISHLIST / WATCHING) carries the meaning that used to be a
-   colored/dashed border treatment. */
+/* Wishlist items and watches read as a list row (saved trips get their own
+   "closed book" card treatment below instead — see .trip-book). */
 .wishlist-item,
-.trip-item,
 .local-watch-item {
   background: var(--card);
   border: 1px solid var(--border);
@@ -431,12 +607,105 @@ body {
   font-size: 0.82rem;
 }
 
+/* ---- Saved trips: closed book cards ---- */
+
+.trip-book-wrap {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.trip-book {
+  display: flex;
+  width: 100%;
+  text-align: left;
+  background: var(--sidebar-bg);
+  border: none;
+  border-radius: var(--radius);
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(20, 22, 43, 0.18), inset -3px 0 0 rgba(0, 0, 0, 0.15);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.trip-book:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(20, 22, 43, 0.26), inset -3px 0 0 rgba(0, 0, 0, 0.15);
+}
+
+.trip-book-spine {
+  flex: 0 0 8px;
+  background: var(--sidebar-accent);
+}
+
+.trip-book-cover {
+  position: relative;
+  flex: 1;
+  padding: 14px 40px 14px 16px;
+  color: var(--sidebar-text-active);
+}
+
+.trip-book-cover .item-kind-badge {
+  position: static;
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--sidebar-text-hover);
+}
+
+.trip-book-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.trip-book-sub {
+  color: var(--sidebar-text-hover);
+  font-size: 0.8rem;
+  margin-top: 2px;
+}
+
+.trip-book-dates,
+.trip-book-cost {
+  color: var(--sidebar-text);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  margin-top: 6px;
+}
+
+.trip-book-open {
+  color: var(--sidebar-accent);
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+.trip-book-remove {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  line-height: 1;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--sidebar-text-hover);
+  border-radius: 50%;
+  font-size: 0.75rem;
+}
+.trip-book-remove:hover { background: rgba(255, 255, 255, 0.2); color: #fff; }
+
 /* ---- Forms ---- */
 
 #trip-form,
 #wishlist-form,
 #day-form,
-#watch-form {
+#watch-form,
+#login-form,
+#signup-form,
+#preferences-form,
+#settings-form {
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -445,7 +714,11 @@ body {
 #trip-form label,
 #wishlist-form label,
 #day-form label,
-#watch-form label {
+#watch-form label,
+#login-form label,
+#signup-form label,
+#preferences-form label,
+#settings-form label {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -466,7 +739,12 @@ body {
 #day-form input,
 #day-form select,
 #watch-form input,
-#watch-form select {
+#watch-form select,
+#login-form input,
+#signup-form input,
+#preferences-form input,
+#preferences-form select,
+#settings-form select {
   background: var(--card);
   border: 1px solid var(--border);
   color: var(--text);
@@ -483,10 +761,24 @@ body {
 #day-form input:focus,
 #day-form select:focus,
 #watch-form input:focus,
-#watch-form select:focus {
+#watch-form select:focus,
+#login-form input:focus,
+#signup-form input:focus,
+#preferences-form input:focus,
+#preferences-form select:focus,
+#settings-form select:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.13);
+}
+
+/* Every placeholder in the app is an example, not a real value the field
+   already contains — italicized so it never reads as pre-filled input. */
+input::placeholder,
+textarea::placeholder {
+  font-style: italic;
+  color: var(--muted);
+  opacity: 1;
 }
 
 .budget-with-currency {
@@ -510,6 +802,16 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+/* The budget column packs a number input *and* a currency select into the
+   same width an equal 1fr would give a single plain input elsewhere in the
+   row — the currency select's ~98px (width + gap) eats into the number
+   input, making it look cramped next to its neighbor. Skewing the columns
+   gives that space back so the two actual input boxes end up visually
+   balanced instead of one looking oversized and the other squeezed. */
+.row--budget {
+  grid-template-columns: 0.8fr 1.2fr;
 }
 
 /* Grid items default to min-width:auto (their content's min-content size),
@@ -585,7 +887,12 @@ button {
 #plan-btn,
 #day-plan-btn,
 #wishlist-btn,
-#watch-btn {
+#watch-btn,
+#login-btn,
+#signup-btn,
+#landing-cta-btn,
+#save-preferences-btn,
+#save-settings-btn {
   background: var(--accent);
   color: var(--on-accent);
   margin-top: 4px;
@@ -594,11 +901,42 @@ button {
 #plan-btn:hover:not(:disabled),
 #day-plan-btn:hover:not(:disabled),
 #wishlist-btn:hover:not(:disabled),
-#watch-btn:hover:not(:disabled) { background: var(--accent-hover); }
+#watch-btn:hover:not(:disabled),
+#login-btn:hover:not(:disabled),
+#signup-btn:hover:not(:disabled),
+#landing-cta-btn:hover:not(:disabled),
+#save-preferences-btn:hover:not(:disabled),
+#save-settings-btn:hover:not(:disabled) { background: var(--accent-hover); }
 #plan-btn:disabled,
 #day-plan-btn:disabled,
 #wishlist-btn:disabled,
-#watch-btn:disabled { opacity: 0.6; cursor: wait; }
+#watch-btn:disabled,
+#login-btn:disabled,
+#signup-btn:disabled,
+#save-preferences-btn:disabled,
+#save-settings-btn:disabled { opacity: 0.6; cursor: wait; }
+
+.submit-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.submit-row #plan-btn,
+.submit-row #day-plan-btn {
+  flex: 1;
+}
+
+.submit-row button[id$="-stop-btn"] {
+  background: var(--card);
+  color: var(--danger);
+  border: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+
+.submit-row button[id$="-stop-btn"]:hover {
+  border-color: var(--danger);
+}
 
 #check-updates-btn {
   background: var(--card);
@@ -783,6 +1121,12 @@ button {
 .stat.over-budget .value { color: var(--danger); }
 .stat.within-budget .value { color: var(--success); }
 
+.stat .hint {
+  display: block;
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
 .booking-row {
   display: flex;
   gap: 10px;
@@ -826,22 +1170,18 @@ button {
 
 .save-trip-row {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 10px;
-  flex-wrap: wrap;
   padding: 14px 20px;
   border-bottom: 1px solid var(--border);
 }
 
-.save-trip-row input {
-  background: var(--card);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  font-size: 0.85rem;
-  flex: 1;
-  min-width: 200px;
+.save-trip-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 #save-trip-btn {
@@ -852,10 +1192,48 @@ button {
 
 #save-trip-btn:hover { background: #0a5a4f; }
 
+.secondary-btn {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.secondary-btn:hover { border-color: var(--border-strong); }
+
 .save-trip-status {
   font-size: 0.8rem;
   color: var(--success);
   font-weight: 600;
+}
+
+.calendar-link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--success-bg);
+}
+
+.checkbox-label {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-body) !important;
+  font-size: 0.85rem !important;
+  font-weight: normal !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  color: var(--text) !important;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  flex: none;
 }
 
 .itinerary {
@@ -954,6 +1332,23 @@ button {
   margin-top: 8px;
 }
 
+.day-card .day-events-label {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 12px 0 6px;
+}
+
+.day-card .day-events .event-card {
+  margin-bottom: 6px;
+}
+
+.day-card .day-events .event-card:last-child {
+  margin-bottom: 0;
+}
+
 /* Event cards — a suggestion the traveler still has to act on, not a
    confirmed booking, marked by the left accent tag rather than a border
    treatment. */
@@ -966,9 +1361,30 @@ button {
   margin-bottom: 8px;
 }
 
+.event-card.chosen {
+  border-left-color: var(--accent);
+  background: var(--bg);
+}
+
 .event-card .event-name {
   font-weight: 600;
   font-size: 0.92rem;
+}
+
+.ticket-required-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--warning);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning);
+  border-radius: 999px;
+  vertical-align: middle;
 }
 
 .event-card .event-meta {
@@ -1103,6 +1519,73 @@ button {
   background: linear-gradient(90deg, var(--bg) 0%, var(--border) 50%, var(--bg) 100%);
   background-size: 400px 100%;
   animation: shimmer 1.4s infinite linear;
+}
+
+/* ---- Account panel ---- */
+
+.account-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 10px 0 14px;
+}
+
+.account-tab-btn {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.account-tab-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+.use-location-inline {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 0;
+  margin-left: 8px;
+}
+
+.use-location-inline:hover {
+  text-decoration: underline;
+}
+
+#account-email {
+  font-size: 0.85rem;
+  margin: 4px 0 14px;
+}
+
+.account-home-location {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 14px;
+}
+
+.account-home-location .value {
+  font-size: 0.92rem;
+  font-weight: 600;
+  margin: 2px 0 8px;
+}
+
+#logout-btn {
+  width: 100%;
+  justify-content: center;
+  border: 1px solid var(--border);
 }
 
 @media (max-width: 860px) {

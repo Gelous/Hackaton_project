@@ -17,15 +17,69 @@
       <svg class="brand-mark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C7.6 2 4 5.6 4 10c0 6 8 12 8 12s8-6 8-12c0-4.4-3.6-8-8-8zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>
       <h1>Trip Planner Agent</h1>
     </div>
-    <button id="notif-bell" class="bell-btn" title="Notifications" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="notif-panel">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-      <span id="notif-badge" class="badge" hidden>0</span>
-    </button>
+    <div class="topbar-actions">
+      <button id="account-btn" class="bell-btn" title="Account" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="account-panel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="8" r="4"/></svg>
+      </button>
+      <button id="notif-bell" class="bell-btn" title="Notifications" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="notif-panel" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="notif-badge" class="badge" hidden>0</span>
+      </button>
+    </div>
   </header>
 
-  <div class="app">
+  <!-- Login/signup only — once logged in, the account icon jumps straight
+       to the Settings tab (see the sidenav) instead of opening this, so
+       there's one home for account info, not two. Lives outside both the
+       landing view and #app-shell (see below) so it's reachable from
+       either — anything inside a hidden ancestor can never be shown by
+       toggling its own hidden attribute. -->
+  <div id="account-panel" class="notif-panel account-dropdown" hidden>
+    <h2>Account</h2>
+    <p class="hint">An account is required to plan trips, days out, or wishlist items — keeps everything private to you. A saved home city can also pre-fill Trip Planner and Day Out automatically, on any device.</p>
+    <div class="account-tabs">
+      <button type="button" class="account-tab-btn active" data-account-tab="login">Log in</button>
+      <button type="button" class="account-tab-btn" data-account-tab="signup">Sign up</button>
+    </div>
+    <form id="login-form">
+      <label>Email
+        <input type="email" name="login_email" required autocomplete="email" />
+      </label>
+      <label>Password
+        <input type="password" name="login_password" required autocomplete="current-password" />
+      </label>
+      <button type="submit" id="login-btn">Log in</button>
+    </form>
+    <form id="signup-form" hidden>
+      <label>Email
+        <input type="email" name="signup_email" required autocomplete="email" />
+      </label>
+      <label>Password <span class="hint">(8+ characters)</span>
+        <input type="password" name="signup_password" required minlength="8" autocomplete="new-password" />
+      </label>
+      <button type="submit" id="signup-btn">Sign up</button>
+    </form>
+    <div id="account-auth-status" class="status" hidden aria-live="polite"></div>
+  </div>
+
+  <section id="landing" class="landing">
+    <div class="landing-card">
+      <svg class="landing-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C7.6 2 4 5.6 4 10c0 6 8 12 8 12s8-6 8-12c0-4.4-3.6-8-8-8zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>
+      <h2>Plan trips end to end, with a real AI travel agent</h2>
+      <p class="landing-lede">Real flights, hotels, weather, and activities — researched and turned into a day-by-day plan, then watched in the background for price and weather changes so you don't have to keep checking.</p>
+      <ul class="landing-features">
+        <li><strong>Trip Planner</strong> — full multi-day trips with budget, flight and hotel picks, and a daily itinerary.</li>
+        <li><strong>Day Out</strong> — same-day plans for one city, driven by mood or interest.</li>
+        <li><strong>Wishlist</strong> — loose travel intent with no fixed dates yet; the agent watches for a good window.</li>
+        <li><strong>Saved Trips</strong> — lock in a plan and get notified of real price/weather changes.</li>
+      </ul>
+      <p class="landing-privacy">Your trips, wishlist, and watches are private to your account — that's why an account is required to start planning.</p>
+      <button type="button" id="landing-cta-btn" class="landing-cta">Log in or sign up</button>
+    </div>
+  </section>
+
+  <div class="app" id="app-shell" hidden>
     <nav class="sidenav" aria-label="Primary">
-      <div class="nav-section-label">Planning</div>
       <div class="nav-list" role="tablist">
         <button type="button" class="tab-btn nav-item active" data-tab="trip-tab" role="tab" aria-selected="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
@@ -41,7 +95,12 @@
         </button>
         <button type="button" class="tab-btn nav-item" data-tab="trips-tab" role="tab" aria-selected="false">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1z"/></svg>
-          Saved Trips
+          My Trips
+        </button>
+        <div class="nav-divider"></div>
+        <button type="button" class="tab-btn nav-item" data-tab="settings-tab" role="tab" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V21a2 2 0 0 1-4 0v-.09A1.7 1.7 0 0 0 9 19.35a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.65 15a1.7 1.7 0 0 0-1.56-1.04H3a2 2 0 0 1 0-4h.09A1.7 1.7 0 0 0 4.65 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.65a1.7 1.7 0 0 0 1.04-1.56V3a2 2 0 0 1 4 0v.09A1.7 1.7 0 0 0 15 4.65a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.35 9a1.7 1.7 0 0 0 1.56 1.04H21a2 2 0 0 1 0 4h-.09a1.7 1.7 0 0 0-1.56 1.04z"/></svg>
+          Settings
         </button>
       </div>
     </nav>
@@ -65,6 +124,7 @@
 
       <form id="trip-form">
         <label>Starting city
+          <button type="button" class="use-location-inline" data-city-input="origin-input">📍 Use my location</button>
           <div class="autocomplete-wrap">
             <input type="text" name="origin_city" id="origin-input" placeholder="Search any city worldwide" autocomplete="off" required
               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="origin-dropdown" />
@@ -89,7 +149,7 @@
           </label>
         </div>
 
-        <div class="row">
+        <div class="row row--budget">
           <label>Travelers
             <input type="number" name="travelers" min="1" value="2" required />
           </label>
@@ -130,17 +190,30 @@
             <select name="accommodation">
               <option value="budget hostel">Budget / hostel</option>
               <option value="mid-range hotel" selected>Mid-range hotel</option>
-              <option value="boutique">Boutique</option>
-              <option value="luxury">Luxury</option>
+              <option value="boutique">Boutique hotel</option>
+              <option value="luxury">Luxury hotel</option>
             </select>
           </label>
         </div>
+
+        <label>Preferred departure time <span class="hint">(flights only, optional)</span>
+          <select name="preferred_departure_time">
+            <option value="" selected>No preference</option>
+            <option value="morning">Morning (5am-12pm)</option>
+            <option value="afternoon">Afternoon (12pm-5pm)</option>
+            <option value="evening">Evening (5pm-9pm)</option>
+            <option value="red-eye">Red-eye / late night (9pm-5am)</option>
+          </select>
+        </label>
 
         <label>Dietary / other needs
           <input type="text" name="dietary_needs" placeholder="vegetarian, gluten-free, none..." />
         </label>
 
-        <button type="submit" id="plan-btn">Plan my trip</button>
+        <div class="submit-row">
+          <button type="submit" id="plan-btn">Plan my trip</button>
+          <button type="button" id="plan-stop-btn" class="link-btn" hidden>Stop</button>
+        </div>
       </form>
 
       <div id="status" class="status" hidden aria-live="polite"></div>
@@ -159,6 +232,7 @@
 
         <form id="day-form">
           <label>City
+            <button type="button" class="use-location-inline" data-city-input="day-city-input">📍 Use my location</button>
             <div class="autocomplete-wrap">
               <input type="text" name="day_city" id="day-city-input" placeholder="Search any city worldwide" autocomplete="off" required
                 role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="day-city-dropdown" />
@@ -170,21 +244,45 @@
             <input type="date" name="day_date" required />
           </label>
 
-          <label>Mood / interest
-            <input type="text" name="day_mood" placeholder="chill evening, live music, adventurous, romantic..." />
+          <label>Mood / interest <span class="hint">(optional, soft nudge)</span>
+            <input type="text" name="day_mood" placeholder="chill evening, adventurous, romantic..." />
+          </label>
+
+          <label>Event type
+            <select name="day_event_type">
+              <option value="">Any</option>
+              <option value="Music">Music</option>
+              <option value="Sports">Sports</option>
+              <option value="Arts & Theatre">Arts &amp; Theatre</option>
+              <option value="Film">Film</option>
+              <option value="Miscellaneous">Comedy / Other</option>
+            </select>
+          </label>
+
+          <label>Max events to show
+            <select name="day_max_events">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5" selected>5</option>
+            </select>
           </label>
 
           <label>Dietary / other needs
             <input type="text" name="day_dietary_needs" placeholder="vegetarian, gluten-free, none..." />
           </label>
 
-          <button type="submit" id="day-plan-btn">Plan my day</button>
+          <div class="submit-row">
+            <button type="submit" id="day-plan-btn">Plan my day</button>
+            <button type="button" id="day-plan-stop-btn" class="link-btn" hidden>Stop</button>
+          </div>
         </form>
 
         <div id="day-status" class="status" hidden aria-live="polite"></div>
 
         <h2 class="section-heading">Watch a city</h2>
-        <p class="tagline">Not ready to plan a specific day? Save a city and mood, and the agent checks daily on its own for real new events — surfaced in the notification inbox, no need to come back and ask. Needs a Ticketmaster API key configured server-side to actually find events (see README) — otherwise it'll just never have anything new to report.</p>
+        <p class="tagline">Not ready to plan a specific day? Save a city and mood, and the agent checks daily on its own for new events happening there — surfaced right in your notifications, no need to come back and check.</p>
 
         <form id="watch-form">
           <label>City
@@ -195,12 +293,24 @@
             </div>
           </label>
 
-          <label>Mood / interest
-            <input type="text" name="watch_mood" placeholder="live music, food, family friendly..." />
+          <label>Mood / interest <span class="hint">(optional, soft nudge)</span>
+            <input type="text" name="watch_mood" placeholder="food, family friendly..." />
           </label>
 
-          <label>Email <span class="hint">(optional, for alerts)</span>
-            <input type="email" name="watch_email" placeholder="you@email.com" />
+          <label>Event type
+            <select name="watch_event_type">
+              <option value="">Any</option>
+              <option value="Music">Music</option>
+              <option value="Sports">Sports</option>
+              <option value="Arts & Theatre">Arts &amp; Theatre</option>
+              <option value="Film">Film</option>
+              <option value="Miscellaneous">Comedy / Other</option>
+            </select>
+          </label>
+
+          <label class="checkbox-label">
+            <input type="checkbox" name="watch_alerts" checked />
+            Email me at my account address when new events are found
           </label>
 
           <button type="submit" id="watch-btn">Start watching</button>
@@ -217,7 +327,7 @@
 
       <div id="wishlist-tab" class="tab-panel" hidden>
         <div class="panel-header"><h2>Wishlist</h2></div>
-        <p class="tagline">No fixed dates yet? Save loose intent — a flexible window and a budget ceiling — and the agent watches on its own for a good window, no need to check back.</p>
+        <p class="tagline">No fixed dates yet? Save loose intent — a flexible window and a budget ceiling — and the agent watches on its own for a good window, no need to check back. Saved wishlist items are monitored right alongside your confirmed trips — see them both in <strong>My Trips</strong>.</p>
 
         <form id="wishlist-form">
           <label>Starting city
@@ -245,7 +355,7 @@
             </label>
           </div>
 
-          <div class="row">
+          <div class="row row--budget">
             <label>Trip length (days)
               <input type="number" name="wl_trip_length_days" min="1" value="5" required />
             </label>
@@ -274,8 +384,9 @@
             <input type="text" name="wl_interests" placeholder="beaches, hiking, food..." />
           </label>
 
-          <label>Email <span class="hint">(optional, for alerts)</span>
-            <input type="email" name="wl_email" placeholder="you@email.com" />
+          <label class="checkbox-label">
+            <input type="checkbox" name="wl_alerts" checked />
+            Email me at my account address about this wishlist item
           </label>
 
           <button type="submit" id="wishlist-btn">Add to wishlist</button>
@@ -283,17 +394,123 @@
 
         <div id="wishlist-status" class="status" hidden aria-live="polite"></div>
         <div id="wishlist-result" class="wishlist-result" hidden></div>
-
-        <div id="wishlist-items-section">
-          <h2 class="section-heading">Your wishlist</h2>
-          <div id="wishlist-items"></div>
-        </div>
       </div>
 
       <div id="trips-tab" class="tab-panel" hidden>
-        <div class="panel-header"><h2>Saved Trips</h2></div>
-        <p class="tagline">Trips you've locked in and saved for background monitoring.</p>
+        <div class="panel-header"><h2>My Trips</h2></div>
+        <p class="tagline">Everything the agent is watching for you — confirmed trips get price/weather alerts, wishlist items get watched for a good window. Both send real email alerts to your account address unless you turn that off in Settings.</p>
+
+        <h2 class="section-heading">Confirmed trips</h2>
         <div id="trips-list"></div>
+
+        <h2 class="section-heading">Wishlist</h2>
+        <div id="wishlist-items"></div>
+      </div>
+
+      <div id="settings-tab" class="tab-panel" hidden>
+        <div class="panel-header"><h2>Settings</h2></div>
+        <p id="profile-email" class="tagline"></p>
+
+        <h2 class="section-heading">Home location</h2>
+        <p class="hint">Pre-fills Trip Planner's starting city and Day Out's city automatically, on any device — and Day Out anchors suggestions to this exact point rather than the city center.</p>
+        <div class="account-home-location">
+          <div class="hint">Home city</div>
+          <div id="account-home-city" class="value">Not set</div>
+          <button type="button" id="use-my-location-btn" class="link-btn">📍 Use my current location</button>
+          <div id="account-location-status" class="status" hidden aria-live="polite"></div>
+        </div>
+
+        <h2 class="section-heading">Defaults</h2>
+        <p class="hint">Prefill new plans — every field stays editable per-plan, nothing here is a lock-in.</p>
+        <form id="preferences-form">
+          <label>Default currency
+            <select name="pref_currency">
+              <option value="">No default</option>
+              <option value="USD">USD $</option>
+              <option value="EUR">EUR €</option>
+              <option value="GBP">GBP £</option>
+              <option value="JPY">JPY ¥</option>
+              <option value="CAD">CAD C$</option>
+              <option value="AUD">AUD A$</option>
+              <option value="CHF">CHF Fr</option>
+              <option value="CNY">CNY ¥</option>
+              <option value="INR">INR ₹</option>
+              <option value="MXN">MXN $</option>
+              <option value="BRL">BRL R$</option>
+              <option value="SGD">SGD S$</option>
+            </select>
+          </label>
+          <label>Default transportation
+            <select name="pref_transportation">
+              <option value="">No default</option>
+              <option value="flight">Flight</option>
+              <option value="drive">Drive</option>
+              <option value="either">Either / no preference</option>
+            </select>
+          </label>
+          <label>Default accommodation
+            <select name="pref_accommodation">
+              <option value="">No default</option>
+              <option value="budget hostel">Budget / hostel</option>
+              <option value="mid-range hotel">Mid-range hotel</option>
+              <option value="boutique">Boutique hotel</option>
+              <option value="luxury">Luxury hotel</option>
+            </select>
+          </label>
+          <label>Default alert email <span class="hint">(prefills wishlist/watch alert emails)</span>
+            <input type="email" name="pref_notify_email" placeholder="you@email.com" />
+          </label>
+          <button type="submit" id="save-preferences-btn">Save preferences</button>
+        </form>
+        <div id="preferences-status" class="status" hidden aria-live="polite"></div>
+
+        <h2 class="section-heading">Notifications &amp; display</h2>
+        <form id="settings-form">
+          <label class="checkbox-label">
+            <input type="checkbox" name="settings_email_notifications" checked />
+            Email notifications
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" name="settings_in_app_notifications" checked />
+            In-app notifications (the bell icon)
+          </label>
+          <label>Text size
+            <select name="settings_font_scale">
+              <option value="small">Small</option>
+              <option value="medium" selected>Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </label>
+          <label>Appearance
+            <select name="settings_theme">
+              <option value="light" selected>Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </label>
+          <button type="submit" id="save-settings-btn">Save settings</button>
+        </form>
+        <div id="settings-status" class="status" hidden aria-live="polite"></div>
+
+        <h2 class="section-heading">Invite a friend</h2>
+        <p class="hint">Share a link straight to the app — no account needed to look, just to plan.</p>
+        <button type="button" id="invite-friend-btn" class="link-btn">🔗 Copy invite link</button>
+        <div id="invite-status" class="status" hidden aria-live="polite"></div>
+
+        <h2 class="section-heading">Account</h2>
+        <button type="button" id="logout-btn" class="link-btn">Log out</button>
+
+        <h2 class="section-heading danger-heading">Danger zone</h2>
+        <p class="hint">Permanently deletes your account and everything tied to it — saved trips, wishlist, watches, notifications. This can't be undone.</p>
+        <button type="button" id="delete-account-btn" class="danger-btn">Delete my account</button>
+        <div id="delete-account-confirm" hidden>
+          <p class="hint">Type <strong>DELETE</strong> to confirm — this is permanent.</p>
+          <input type="text" id="delete-account-confirm-input" autocomplete="off" placeholder="DELETE" />
+          <div class="danger-confirm-actions">
+            <button type="button" id="delete-account-confirm-btn" class="danger-btn" disabled>Permanently delete</button>
+            <button type="button" id="delete-account-cancel-btn" class="link-btn">Cancel</button>
+          </div>
+        </div>
+        <div id="delete-account-status" class="status" hidden aria-live="polite"></div>
       </div>
     </aside>
 
@@ -332,10 +549,27 @@
           <div id="cost-stats" class="stat-grid"></div>
         </section>
 
+        <section class="results-section" id="hotel-options-section" hidden>
+          <h3>Choose a hotel</h3>
+          <p class="tagline">Real hotels near your destination (from OpenStreetMap) — picking one re-anchors every activity's travel time to that specific hotel instead of the city center. The price range above stays a general estimate either way, not a confirmed rate for any one of these.</p>
+          <div id="hotel-options"></div>
+        </section>
+
         <div id="save-trip-row" class="save-trip-row" hidden>
-          <input type="email" id="save-trip-email" placeholder="you@email.com (optional, for email alerts)" />
-          <button id="save-trip-btn" type="button">Save &amp; monitor this trip</button>
+          <label class="checkbox-label">
+            <input type="checkbox" id="save-trip-alerts" checked />
+            Email me at my account address about this trip
+          </label>
+          <div class="save-trip-actions">
+            <button id="save-trip-btn" type="button">Save &amp; monitor this trip</button>
+            <button id="save-wishlist-btn" type="button" class="secondary-btn">Save to wishlist instead</button>
+          </div>
           <span id="save-trip-status" class="save-trip-status"></span>
+        </div>
+
+        <div id="calendar-link-row" class="calendar-link-row" hidden>
+          <span class="hint">This trip is confirmed —</span>
+          <a id="calendar-link" href="#" target="_blank" rel="noopener" class="link-btn">📅 Add to Google Calendar</a>
         </div>
 
         <section class="results-section" id="daily-plan-section" hidden>

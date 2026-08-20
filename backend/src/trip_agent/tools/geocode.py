@@ -29,6 +29,7 @@ def geocode_city(city_name: str) -> dict:
                 "json": {
                     "name": place.get("name"),
                     "country": place.get("country"),
+                    "country_code": place.get("country_code"),
                     "admin1": place.get("admin1"),
                     "latitude": place["latitude"],
                     "longitude": place["longitude"],

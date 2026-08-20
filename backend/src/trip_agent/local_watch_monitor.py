@@ -34,6 +34,10 @@ def evaluate_local_watch(item: dict) -> dict:
         start_date=today.isoformat(),
         end_date=window_end.isoformat(),
         mood_or_interest=item.get("mood_or_interest") or "",
+        event_type=item.get("event_type") or "",
+        country_code=item.get("country_code") or "",
+        latitude=item.get("lat"),
+        longitude=item.get("lon"),
     )
 
     already_notified = set(json.loads(item.get("notified_event_urls") or "[]"))
